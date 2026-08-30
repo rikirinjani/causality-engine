@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Test / coverage
+coverage/
+.nyc_output/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env / secrets — never commit (per AGENTS.md)
+.env
+.env.*
+auth/
+payments/
+secrets/
+credentials/
+
+# IDE
+.vscode/
+.idea/
+*.log
+
+# Self-harness local traces (kept out of the public repo; they live in the parent workspace)
+self-harness/
