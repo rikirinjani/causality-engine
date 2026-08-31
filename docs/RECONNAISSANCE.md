@@ -1766,6 +1766,761 @@ Evidence, not preference: CE was kept transport-free (a test asserts `DeliverySt
 **Is the CE public adapter/API now semantically safe to design?**
 
 > **Yes, with the same one gap to close first as last pass, now sharpened.** Sec 19 closed ontology, identity (timeline-scoped), ordering, delivery guarantee, cursor semantics, duplicate handling, event/state split, persistence, branching, rewind and attribution. This pass closed the retention gap that sec 19 left open — the silent-skip defect would have made the API promise "explicit gaps" while delivering silent loss, and the hybrid ownership, `streamSeq` coordinates, and file-backed restart proof now make that promise real. What remains is the same tension sec 19 flagged: the retention *value* (500) is untuned and still a single number, and `historyTruncated` still conflates provenance and event truncation. Neither blocks the API's *shape* — every operation now stands — but the value will determine how quickly a real slow consumer hits its first gap, and that should be decided with the adapter's first consumer in mind rather than discovered mid-API.
-
 Unreal, networking, multiplayer and LLM work remain untouched.
+
+---
+
+## 21. Public Core API & Adapter Contract (2026-08-31)
+
+### 21.1 — Purpose
+
+Define the **smallest stable interface** through which a game engine can use CE without exposing internal machinery. Two audiences: the *game developer* (builds causal worlds) and the *engine adapter* (integrates CE into Unreal/Godot/Unity). Everything else is internal.
+
+### 21.2 — Design Principles
+
+1. **Minimal exposure.** Every public symbol earns its place. If the adapter can own it, CE does not expose it.
+2. **Type safety over duck typing.** All public types are explicit interfaces; no `any`, no structural subsumption.
+3. **Immutability by default.** Public API never mutates caller-owned objects. `snapshot()` returns a deep copy; `submitIntervention()` validates but does not freeze.
+4. **Determinism is not optional.** The public API cannot break determinism. Every operation is reproducible given identical inputs and seed.
+5. **Adapter separation.** Event delivery, checkpoint persistence, and lifecycle management are adapter concerns, not game-developer concerns. They live in a separate export surface.
+
+### 21.3 — Audience Model
+
+| Audience | Needs | Does NOT need |
+|----------|-------|---------------|
+| **Game Developer** | Create world, submit interventions, run ticks, snapshot/restore, query current state | Checkpoint serialization, delivery cursors, provenance internals, migration, convergence mechanics |
+| **Engine Adapter** | Everything above + checkpoint persistence, event delivery, branching, lifecycle, migration, state sync | Provenance DAG traversal, convergence internals, harness utilities, debug tools |
+| **Internal (CE maintainers)** | Everything above + provenance, convergence, harness, debug, sweep, calibration | — |
+
+### 21.4 — Full Export Audit
+
+Every exported symbol from `src/core/`, `src/game/`, and `src/poc/`, classified:
+
+#### `src/core/world.ts`
+
+| Symbol | Kind | Visibility | Rationale |
+|--------|------|------------|-----------|
+| `Engine` | interface | **PUBLIC** | Game developer passes this to `createWorld` |
+| `createEngine()` | function | **PUBLIC** | Creates the engine host |
+| `convergenceConfig()` | function | INTERNAL | Engine-only; derived from SimConfig |
+| `createWorld()` | function | **PUBLIC** | Primary entry point |
+| `submitIntervention()` | function | **PUBLIC** | Primary causal action |
+| `submitBatch()` | function | ADAPTER-FACING | Canonical ordering; adapter may batch |
+| `tick()` | function | **PUBLIC** | Core simulation step |
+| `advance()` | function | **PUBLIC** | Convenience wrapper over tick |
+| `attachEngine()` | function | ADAPTER-FACING | Re-attach after checkpoint restore |
+| `snapshot()` | function | **PUBLIC** | Deep copy for persistence |
+| `restore()` | function | ADAPTER-FACING | Restore from checkpoint |
+| `RNGState` | type re-export | **PUBLIC** | Needed for `createWorld` seed config |
+| `SimConfig` | type re-export | **PUBLIC** | Needed for `createWorld` config |
+
+#### `src/core/config.ts`
+
+| Symbol | Kind | Visibility | Rationale |
+|--------|------|------------|-----------|
+| `SimConfig` | interface | **PUBLIC** | Game developer configures world parameters |
+| `DEFAULT_CONFIG` | const | **PUBLIC** | Default configuration |
+| `makeConfig()` | function | ADAPTER-FACING | Partial-override builder |
+| `uniformThresholds()` | function | ADAPTER-FACING | Convenience for threshold config |
+
+#### `src/core/persistence.ts`
+
+| Symbol | Kind | Visibility | Rationale |
+|--------|------|------------|-----------|
+| `CHECKPOINT_FORMAT` | const | ADAPTER-FACING | Format identifier |
+| `CHECKPOINT_FORMAT_VERSION` | const | ADAPTER-FACING | Version for forward compat |
+| `CheckpointIdentity` | interface | ADAPTER-FACING | Checkpoint metadata |
+| `CheckpointEnvelope` | interface | ADAPTER-FACING | Checkpoint container |
+| `CheckpointErrorCode` | type | ADAPTER-FACING | Error classification |
+| `CheckpointError` | interface | ADAPTER-FACING | Error details |
+| `LoadResult` | type | ADAPTER-FACING | Load outcome |
+| `createCheckpoint()` | function | ADAPTER-FACING | Save world state |
+| `serializeCheckpoint()` | function | ADAPTER-FACING | Serialize for storage |
+| `validateCheckpoint()` | function | ADAPTER-FACING | Validate on load |
+| `deserializeCheckpoint()` | function | ADAPTER-FACING | Deserialize from storage |
+| `ConfigPolicy` | type | INTERNAL | Migration detail |
+| `RestoreOptions` | interface | ADAPTER-FACING | Restore configuration |
+| `RestoredWorld` | interface | ADAPTER-FACING | Restore outcome |
+| `restoreCheckpoint()` | function | ADAPTER-FACING | Full restore with migration |
+
+#### `src/core/delivery.ts`
+
+| Symbol | Kind | Visibility | Rationale |
+|--------|------|------------|-----------|
+| `Cursor` | interface | ADAPTER-FACING | Stream position |
+| `CURSOR_START` | const | ADAPTER-FACING | Initial cursor |
+| `DeliveryAttempt` | interface | INTERNAL | Delivery bookkeeping |
+| `ConsumerChannel` | interface | ADAPTER-FACING | Consumer state |
+| `DeliveryState` | interface | ADAPTER-FACING | All consumer cursors |
+| `createDeliveryState()` | function | ADAPTER-FACING | Initialize delivery |
+| `registerConsumer()` | function | ADAPTER-FACING | Register a consumer |
+| `DeliveryGuarantee` | type | ADAPTER-FACING | Contract identifier |
+| `DELIVERY_GUARANTEE` | const | ADAPTER-FACING | "at-least-once" |
+| `streamOf()` | function | ADAPTER-FACING | Get event stream |
+| `PollResult` | type | ADAPTER-FACING | Poll outcome |
+| `poll()` | function | ADAPTER-FACING | Poll for events |
+| `ack()` | function | ADAPTER-FACING | Acknowledge delivery |
+| `disconnect()` | function | ADAPTER-FACING | Pause consumer |
+| `reconnect()` | function | ADAPTER-FACING | Resume consumer |
+| `serializeDelivery()` | function | ADAPTER-FACING | Persist cursors |
+| `deserializeDelivery()` | function | ADAPTER-FACING | Restore cursors |
+| `StateSync` | interface | ADAPTER-FACING | Sync snapshot |
+| `stateSync()` | function | ADAPTER-FACING | Generate sync |
+| `resync()` | function | ADAPTER-FACING | Adopt sync |
+| `HarnessConsumer` | interface | TEST-ONLY | Test harness |
+| `createConsumer()` | function | TEST-ONLY | Test harness |
+| `pump()` | function | TEST-ONLY | Test harness |
+| `factsForTick()` | function | INTERNAL | Internal query |
+
+#### `src/core/events.ts`
+
+| Symbol | Kind | Visibility | Rationale |
+|--------|------|------------|-----------|
+| `EventKind` | type | ADAPTER-FACING | Event classification |
+| `EventTypeSpec` | interface | ADAPTER-FACING | Event metadata |
+| `EVENT_CATALOG` | const | ADAPTER-FACING | Event ontology |
+| `specFor()` | function | ADAPTER-FACING | Lookup event type |
+| `isConsumerFact()` | function | ADAPTER-FACING | Filter for consumers |
+| `deriveEventId()` | function | INTERNAL | Identity derivation |
+| `eventContentHash()` | function | INTERNAL | Content hash |
+| `OrderedEvent` | interface | ADAPTER-FACING | Ordered event |
+| `canonicalCompare()` | function | INTERNAL | Sort comparator |
+| `canonicalOrder()` | function | ADAPTER-FACING | Total order |
+| `factStream()` | function | ADAPTER-FACING | Consumer-filtered stream |
+| `fullRecord()` | function | ADAPTER-FACING | All events |
+| `EventAttribution` | interface | ADAPTER-FACING | Causal attribution |
+| `attributeEvent()` | function | ADAPTER-FACING | Explain event origin |
+| `CoalescedFact` | interface | ADAPTER-FACING | Deduplicated fact |
+| `coalesceFacts()` | function | ADAPTER-FACING | Deduplicate events |
+
+#### `src/core/retention.ts`
+
+| Symbol | Kind | Visibility | Rationale |
+|--------|------|------------|-----------|
+| `enforceRetention()` | function | ADAPTER-FACING | Apply retention policy |
+| `classifyCursor()` | function | ADAPTER-FACING | Cursor status |
+| `describeGap()` | function | ADAPTER-FACING | Gap description |
+| `retentionWindow()` | function | ADAPTER-FACING | Window bounds |
+| `EVENT_RETENTION_LIMIT` | const | ADAPTER-FACING | Default limit (500) |
+
+#### `src/core/lifecycle.ts`
+
+| Symbol | Kind | Visibility | Rationale |
+|--------|------|------------|-----------|
+| `CheckpointClass` | type | ADAPTER-FACING | Classification |
+| `CheckpointClassification` | interface | ADAPTER-FACING | Classification detail |
+| `Capability` | type | ADAPTER-FACING | Capability flags |
+| `RetentionPolicy` | interface | ADAPTER-FACING | Retention config |
+| `RETAIN_ALL` | const | ADAPTER-FACING | Unlimited retention |
+| `recentWindowPolicy()` | function | ADAPTER-FACING | Window policy builder |
+| `RESUME_ONLY` | const | ADAPTER-FACING | Minimal retention |
+| `CompactionReport` | interface | ADAPTER-FACING | Compaction outcome |
+| `compactHistory()` | function | ADAPTER-FACING | Compact history |
+| `ancestorClosure()` | function | INTERNAL | Provenance closure |
+| `classifyCheckpoint()` | function | ADAPTER-FACING | Classify checkpoint |
+| `RewindVerdict` | type | ADAPTER-FACING | Rewind feasibility |
+| `canRewindTo()` | function | ADAPTER-FACING | Check rewindability |
+
+#### `src/core/timeline.ts`
+
+| Symbol | Kind | Visibility | Rationale |
+|--------|------|------------|-----------|
+| `BranchHandle` | interface | ADAPTER-FACING | Fork result |
+| `forkTimeline()` | function | ADAPTER-FACING | Fork timeline |
+| `noteDivergence()` | function | INTERNAL | Mark divergence |
+| `RewindResult` | interface | ADAPTER-FACING | Rewind outcome |
+| `rewindTo()` | function | ADAPTER-FACING | Rewind to checkpoint |
+| `interventionsAfter()` | function | ADAPTER-FACING | List divergent interventions |
+| `replayAbandoned()` | function | ADAPTER-FACING | Replay on new timeline |
+| `checkpoint()` | function | ADAPTER-FACING | Create checkpoint |
+
+#### `src/core/hash.ts`
+
+| Symbol | Kind | Visibility | Rationale |
+|--------|------|------------|-----------|
+| `sortKeys()` | function | INTERNAL | JSON key sorting |
+| `stateHash()` | function | ADAPTER-FACING | World determinism check |
+| `traceHash()` | function | ADAPTER-FACING | Trace determinism check |
+| `configHash()` | function | ADAPTER-FACING | Config fingerprint |
+
+#### `src/core/genealogy.ts`
+
+| Symbol | Kind | Visibility | Rationale |
+|--------|------|------------|-----------|
+| `WorldId` | type | ADAPTER-FACING | World identity |
+| `TimelineId` | type | ADAPTER-FACING | Timeline identity |
+| `CheckpointId` | type | ADAPTER-FACING | Checkpoint identity |
+| `TimelineOrigin` | type | ADAPTER-FACING | Origin type |
+| `Lineage` | interface | **PUBLIC** | Included in WorldState |
+| `AbandonedTimeline` | interface | ADAPTER-FACING | Timeline record |
+| `deriveTimelineId()` | function | INTERNAL | Identity derivation |
+| `deriveCheckpointId()` | function | INTERNAL | Identity derivation |
+| `deriveWorldId()` | function | INTERNAL | Identity derivation |
+| `fnv1a()` | function | INTERNAL | Hash function |
+| `genesisLineage()` | function | ADAPTER-FACING | Initial lineage |
+| `ancestryOf()` | function | ADAPTER-FACING | Ancestry chain |
+
+#### `src/core/provenance.ts`
+
+| Symbol | Kind | Visibility | Rationale |
+|--------|------|------------|-----------|
+| `ProvenanceKind` | type | INTERNAL | Node types |
+| `ProvenanceNode` | interface | INTERNAL | DAG node |
+| `ResolutionDecision` | interface | INTERNAL | Decision record |
+| `PROVENANCE_LIMIT` | const | INTERNAL | Capacity limit |
+| `RESOLUTION_LOG_LIMIT` | const | INTERNAL | Capacity limit |
+| `record()` | function | INTERNAL | Record provenance |
+| `setRef()` | function | INTERNAL | Set reference |
+| `getRef()` | function | INTERNAL | Get reference |
+| `clearRef()` | function | INTERNAL | Clear reference |
+| `refsOf()` | function | INTERNAL | Batch get refs |
+| `logDecision()` | function | INTERNAL | Log decision |
+| `RootCause` | interface | DEBUG | Explanation output |
+| `Explanation` | interface | DEBUG | Explanation output |
+| `explain()` | function | DEBUG | Causal explanation |
+| `key` | const | DEBUG | Reference key constant |
+
+#### `src/core/dynamics.ts`
+
+| Symbol | Kind | Visibility | Rationale |
+|--------|------|------------|-----------|
+| `ConvergenceClass` | type | INTERNAL | Classification |
+| `SignalTrace` | interface | INTERNAL | Signal state |
+| `ConvergenceConfig` | interface | INTERNAL | Config |
+| `SignalBounds` | interface | INTERNAL | Bounds |
+| `createTrace()` | function | INTERNAL | Create trace |
+| `observeSignal()` | function | INTERNAL | Record signal |
+| `markCutoff()` | function | INTERNAL | Mark cutoff |
+| `isSemanticVerdict()` | function | DEBUG | Check verdict |
+| `isTrueConvergence()` | function | DEBUG | Check convergence |
+
+#### `src/core/migration.ts`
+
+| Symbol | Kind | Visibility | Rationale |
+|--------|------|------------|-----------|
+| `CURRENT_SCHEMA_VERSION` | const | ADAPTER-FACING | Version check |
+| `MIN_MIGRATABLE_SCHEMA_VERSION` | const | ADAPTER-FACING | Version floor |
+| `HistoryCompleteness` | type | ADAPTER-FACING | Completeness flag |
+| `MigrationNote` | interface | ADAPTER-FACING | Migration detail |
+| `MigrationOutcome` | interface | ADAPTER-FACING | Migration result |
+| `MigrationErrorCode` | type | ADAPTER-FACING | Error classification |
+| `MigrationError` | interface | ADAPTER-FACING | Error detail |
+| `MigrationResult` | type | ADAPTER-FACING | Outcome union |
+| `migrateWorld()` | function | ADAPTER-FACING | Schema migration |
+
+#### `src/core/rng.ts`
+
+| Symbol | Kind | Visibility | Rationale |
+|--------|------|------------|-----------|
+| `RNGState` | interface | **PUBLIC** | Seed state |
+| `RNG` | interface | **PUBLIC** | RNG handle |
+| `createRNG()` | function | ADAPTER-FACING | Create RNG |
+
+#### `src/core/event-bus.ts`
+
+| Symbol | Kind | Visibility | Rationale |
+|--------|------|------------|-----------|
+| `EventBus` | interface | INTERNAL | Internal bus |
+| `createEventBus()` | function | INTERNAL | Create bus |
+| `emit()` | function | INTERNAL | Emit event |
+
+#### `src/game/interventions.ts`
+
+| Symbol | Kind | Visibility | Rationale |
+|--------|------|------------|-----------|
+| `ActionSchema` | interface | ADAPTER-FACING | Schema for actions |
+| `ACTION_SCHEMAS` | const | ADAPTER-FACING | Built-in schemas |
+
+#### `src/game/content.ts`
+
+| Symbol | Kind | Visibility | Rationale |
+|--------|------|------------|-----------|
+| `ResourceDef` | interface | ADAPTER-FACING | Resource definition |
+| `RESOURCES` | const | ADAPTER-FACING | Built-in resources |
+| `PROD_RATES` | const | ADAPTER-FACING | Production rates |
+| `CONS_RATES` | const | ADAPTER-FACING | Consumption rates |
+| `WORLD_SEED` | const | ADAPTER-FACING | Default seed |
+| `ROUTE_ID` | const | ADAPTER-FACING | Default route |
+| `WAREHOUSE_ID` | const | ADAPTER-FACING | Default warehouse |
+| `SHRINE_ID` | const | ADAPTER-FACING | Default shrine |
+| `buildContent()` | function | ADAPTER-FACING | Build world content |
+
+#### `src/game/*.ts` (resolvers)
+
+| Symbol | Kind | Visibility | Rationale |
+|--------|------|------------|-----------|
+| `resolveCivic()` | function | INTERNAL | Domain resolver |
+| `resolveEcology()` | function | INTERNAL | Domain resolver |
+| `resolveEconomy()` | function | INTERNAL | Domain resolver |
+| `resolveFaction()` | function | INTERNAL | Domain resolver |
+| `heartbeatEconomy()` | function | INTERNAL | Domain heartbeat |
+| `heartbeatFactions()` | function | INTERNAL | Domain heartbeat |
+| `heartbeatInvestment()` | function | INTERNAL | Domain heartbeat |
+| `heartbeatPopulation()` | function | INTERNAL | Domain heartbeat |
+| `equilibriumProfitability()` | function | INTERNAL | Economy utility |
+
+#### `src/poc/harness.ts`
+
+| Symbol | Kind | Visibility | Rationale |
+|--------|------|------------|-----------|
+| `InterventionKind` | type | TEST-ONLY | Test harness |
+| `iBridge/iMerchant/iWarehouse/iRally/iShrine/iSubsidy/iSubsidyHT` | functions | TEST-ONLY | Test factories |
+| `FACTORY` | const | TEST-ONLY | Factory map |
+| `Observation` | interface | TEST-ONLY | Test observation |
+| `observe()` | function | TEST-ONLY | Test observation |
+| `ScheduledIntervention` | interface | TEST-ONLY | Test scheduling |
+| `RunResult` | interface | TEST-ONLY | Test result |
+| `TrajectorySummary` | interface | TEST-ONLY | Test summary |
+| `RunOptions` | interface | TEST-ONLY | Test options |
+| `run()` | function | TEST-ONLY | Test runner |
+| `sequential()` | function | TEST-ONLY | Test helper |
+| `sameTick()` | function | TEST-ONLY | Test helper |
+| `MEASURED_KEYS` | const | TEST-ONLY | Test keys |
+| `MeasuredKey` | type | TEST-ONLY | Test type |
+| `FieldDiff` | interface | TEST-ONLY | Test diff |
+| `diff()` | function | TEST-ONLY | Test diff |
+| `differingFields()` | function | TEST-ONLY | Test diff |
+| `CausalQuery` | interface | TEST-ONLY | Test query |
+| `askWhy()` | function | TEST-ONLY | Test query |
+| `rootCauseIds()` | function | TEST-ONLY | Test query |
+
+#### `src/poc/main.ts`
+
+| Symbol | Kind | Visibility | Rationale |
+|--------|------|------------|-----------|
+| `MetricPoint` | interface | TEST-ONLY | Test metrics |
+| `metrics()` | function | TEST-ONLY | Test metrics |
+| `runScenario()` | function | TEST-ONLY | Test scenario |
+| `main()` | function | TEST-ONLY | PoC entry |
+
+#### `src/poc/sweep.ts`
+
+| Symbol | Kind | Visibility | Rationale |
+|--------|------|------------|-----------|
+| `SweepMetrics` | interface | TEST-ONLY | Sweep metrics |
+| `runCell()` | function | TEST-ONLY | Sweep cell |
+| `runSweep()` | function | TEST-ONLY | Sweep runner |
+| `main()` | function | TEST-ONLY | Sweep entry |
+
+### 21.5 — Summary Counts
+
+| Visibility | Count | Description |
+|------------|-------|-------------|
+| **PUBLIC** | 13 | Game developer sees directly |
+| **ADAPTER-FACING** | 89 | Engine adapter uses |
+| **INTERNAL** | 33 | CE internals, not exported |
+| **TEST-ONLY** | 34 | Harness, PoC, sweep |
+| **DEBUG** | 4 | Provenance/convergence debug |
+| **Total** | 173 | |
+
+### 21.6 — Public Conceptual Model
+
+The game developer's world consists of five concepts:
+
+```
+┌─────────────────────────────────────────────────────┐
+│                   GAME DEVELOPER                     │
+│                                                      │
+│  ┌──────────┐  submit  ┌─────────────┐  tick  ┌────┐│
+│  │  World    │◄────────│ Intervention │───────│    ││
+│  │ (state)   │         │ (causal      │       │    ││
+│  │           │         │  action)     │       │    ││
+│  └──────────┘         └─────────────┘       │    ││
+│       │                                       │    ││
+│       │ snapshot ──► CheckpointEnvelope       │    ││
+│       │ restore  ◄── CheckpointEnvelope      │    ││
+│       │                                       │    ││
+│       │ events ──► WorldEvent[]              │    ││
+│       │                                       └────┘│
+│  ┌──────────┐                                      │
+│  │  Engine   │ (opaque handle, one per world)       │
+│  └──────────┘                                      │
+└─────────────────────────────────────────────────────┘
+```
+
+**Five types, three operations, one handle:**
+
+| Concept | Type | Description |
+|---------|------|-------------|
+| World | `WorldState` | The complete simulation state — regions, entities, relations, pending, lineage, RNG |
+| Intervention | `Intervention` | A causal action submitted to the world at a specific tick |
+| Event | `WorldEvent` | A historical fact emitted by the world (not a command) |
+| Checkpoint | `CheckpointEnvelope` | Serializable snapshot of a world at a point in time |
+| Engine | `Engine` | Opaque handle hosting the simulation — one per world |
+
+| Operation | Function | Description |
+|-----------|----------|-------------|
+| Create | `createWorld(config, engine)` | Initialize a new world with configuration and engine |
+| Act | `submitIntervention(world, intervention)` | Submit a causal action at the world's current tick |
+| Advance | `tick(world, engine)` | Advance the simulation one tick |
+| Advance (batch) | `advance(world, engine, n)` | Advance n ticks |
+| Inspect | `world.regions`, `world.relations`, `world.tick` | Read current state |
+| Snapshot | `snapshot(world)` | Deep copy the world for persistence |
+| Events | `factStream(world)` | Consumer-filtered historical facts |
+| Restore | `restoreCheckpoint(envelope)` | Restore world from checkpoint |
+| Hash | `stateHash(world)` | Deterministic fingerprint for reproducibility checks |
+
+### 21.7 — Adapter Conceptual Model
+
+The adapter owns everything the game developer does not:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    ENGINE ADAPTER                        │
+│                                                          │
+│  ┌──────────────┐   ┌──────────────┐   ┌──────────────┐│
+│  │  Persistence  │   │   Delivery   │   │   Branching  ││
+│  │              │   │              │   │              ││
+│  │ checkpoint() │   │ poll()       │   │ forkTimeline ││
+│  │ serialize()  │   │ ack()        │   │ rewindTo()   ││
+│  │ validate()   │   │ stateSync()  │   │ replayAband. ││
+│  │ restore()    │   │ resync()     │   │ interventions││
+│  │ migrate()    │   │ register()   │   │   After()    ││
+│  └──────────────┘   └──────────────┘   └──────────────┘│
+│                                                          │
+│  ┌──────────────┐   ┌──────────────┐                    │
+│  │   Lifecycle   │   │    Hash      │                    │
+│  │              │   │              │                    │
+│  │ compact()    │   │ stateHash()  │                    │
+│  │ classify()   │   │ traceHash()  │                    │
+│  │ canRewindTo()│   │ configHash() │                    │
+│  └──────────────┘   └──────────────┘                    │
+└─────────────────────────────────────────────────────────┘
+```
+
+### 21.8 — What the Public API Does NOT Expose
+
+These are deliberately internal. The adapter does not need them; the game developer does not need them:
+
+| Category | Symbols | Why internal |
+|----------|---------|--------------|
+| **Provenance DAG** | `record()`, `setRef()`, `getRef()`, `clearRef()`, `refsOf()`, `logDecision()`, `explain()` | Causal trace is diagnostic, not functional. Adapter can use `attributeEvent()` for attribution without DAG traversal. |
+| **Convergence Mechanics** | `createTrace()`, `observeSignal()`, `markCutoff()`, `isSemanticVerdict()`, `isTrueConvergence()` | Classification is engine-internal. Adapter sees the result via event types, not the mechanism. |
+| **Internal Hash Helpers** | `sortKeys()` | JSON key sorting is an implementation detail. |
+| **Event Bus** | `createEventBus()`, `emit()` | Internal pub/sub, not part of the causal contract. |
+| **Domain Resolvers** | `resolveCivic()`, `resolveEconomy()`, etc. | Causal physics are registered on the engine, not called directly. |
+| **Test Harness** | `observe()`, `run()`, `diff()`, `askWhy()`, etc. | Test infrastructure only. |
+| **Sweep/Calibration** | `runCell()`, `runSweep()`, `main()` | Development tooling only. |
+
+### 21.9 — Type Dependency Graph (Public Types Only)
+
+```
+SimConfig ──► createWorld() ──► WorldState ──┬──► snapshot() ──► WorldState (copy)
+                                             ├──► factStream() ──► WorldEvent[]
+                                             ├──► stateHash() ──► string
+                                             ├──► submitIntervention() ◄── Intervention
+                                             └──► Lineage (embedded)
+                                                    ├── timelineId: string
+                                                    ├── worldId: string
+                                                    ├── checkpointId: string | null
+                                                    ├── generation: number
+                                                    └── origin: TimelineOrigin
+
+Engine ──► createWorld()
+         ──► tick()
+         ──► advance()
+
+Intervention ──► submitIntervention()
+  ├── id: string
+  ├── tick: number
+  ├── actor: string
+  ├── action: string
+  ├── target: InterventionTarget
+  ├── location: RegionId
+  ├── magnitude: number
+  └── causalDomains: CausalContribution[]
+
+WorldEvent ──► factStream() / fullRecord()
+  ├── id: string (deterministic, timeline-scoped)
+  ├── type: string
+  ├── source: string
+  ├── regionId?: string
+  ├── data: Record<string, unknown>
+  ├── tick: number
+  ├── ordinal: number
+  └── streamSeq: number
+
+CheckpointEnvelope ──► createCheckpoint() / restoreCheckpoint()
+  ├── format: "ce-checkpoint"
+  ├── formatVersion: number
+  ├── identity: CheckpointIdentity
+  └── state: WorldState
+```
+
+### 21.10 — Immutability Contract
+
+| Operation | Mutates caller state? | Returns new object? |
+|-----------|----------------------|---------------------|
+| `createWorld()` | No (creates from config) | Yes (new WorldState) |
+| `submitIntervention()` | **Yes** (pushes to world.pending) | No (mutates in place) |
+| `tick()` | **Yes** (advances world) | No (mutates in place) |
+| `advance()` | **Yes** (calls tick n times) | No (mutates in place) |
+| `snapshot()` | No | Yes (deep copy) |
+| `factStream()` | No | Yes (derived array) |
+| `stateHash()` | No | Yes (string) |
+
+**Key invariant:** `submitIntervention` and `tick` mutate the world in place. This is intentional — copying on every tick would be prohibitively expensive for large worlds. The adapter is responsible for calling `snapshot()` before any mutation if it needs rollback.
+
+### 21.11 — Determinism Guarantees
+
+Given identical `SimConfig`, `seed`, and `Intervention[]` (in canonical order), `advance()` produces:
+- Identical `stateHash` at every tick
+- Identical `traceHash` at every tick
+- Identical event stream (same ids, same order, same content)
+- Identical region values, entity states, and relation values
+
+**Breaking determinism:**
+- Non-deterministic intervention ordering (adapter must canonical-sort by `{tick, sequence}`)
+- Floating-point non-associativity (mitigated by canonical sum ordering in resolvers)
+- External state mutation (adapter must not mutate WorldState outside the API)
+
+### 21.12 — Error Model
+
+The public API throws on contract violations:
+
+| Error | When | Example |
+|-------|------|---------|
+| `Intervention at tick N but world is at tick M < N` | Stale tick | Submit intervention for tick 15 when world is at tick 10 |
+| `Intervention target not found` | Invalid target | Destroy entity that doesn't exist |
+| `Schema version too old` | Migration floor | Load v4 checkpoint when min is v5 |
+| `Invalid checkpoint format` | Corrupt data | Tampered JSON |
+| `State sync from different timeline` | Cross-timeline adopt | Adopt sync from timeline B on consumer of timeline A |
+
+The API does **not** return Result types for normal operations. Errors are exceptional — they indicate programmer mistakes, not runtime conditions.
+
+### 21.13 — Checkpoint Round-Trip Contract
+
+```
+createCheckpoint(world, label)
+  └─► CheckpointEnvelope
+        │
+        ├── serializeCheckpoint(env) ──► string (JSON)
+        │     │
+        │     └── deserializeCheckpoint(text) ──► LoadResult<CheckpointEnvelope>
+        │           │
+        │           └── validateCheckpoint(env) ──► LoadResult<CheckpointEnvelope>
+        │
+        └── restoreCheckpoint(env) ──► LoadResult<RestoredWorld>
+              │
+              └── restored.world (WorldState, ready to tick)
+```
+
+**Invariant:** `restoreCheckpoint(serializeCheckpoint(deserializeCheckpoint(env)))` is a no-op round-trip. The restored world has the same `stateHash`, `traceHash`, `tick`, and `lineage` as the original.
+
+### 21.14 — Delivery Round-Trip Contract
+
+```
+createDeliveryState()
+  └─► DeliveryState
+        │
+        ├── registerConsumer(delivery, "ui") ──► ConsumerChannel
+        │
+        ├── poll(world, delivery, "ui") ──► PollResult
+        │     ├── "events" ──► WorldEvent[] (new facts)
+        │     ├── "empty" ──► (nothing new)
+        │     └── "gap" ──► { missingFromSeq, ... }
+        │
+        ├── ack(delivery, "ui", seq) ──► void
+        │
+        ├── serializeDelivery(delivery) ──► string
+        │     │
+        │     └── deserializeDelivery(text) ──► DeliveryState
+        │
+        └── stateSync(world) ──► StateSync
+              │
+              └── resync(delivery, "ui", sync) ──► { ok, cursor }
+```
+
+### 21.15 — Branching Round-Trip Contract
+
+```
+forkTimeline(world, engine, label, policy)
+  └─► BranchHandle
+        │
+        ├── child WorldState (independent, same seed)
+        │
+        ├── submit interventions to child...
+        │
+        ├── checkpoint(child) ──► CheckpointEnvelope
+        │
+        └── rewindTo(child, checkpoint, engine)
+              │
+              └── RestoredWorld (rewound state)
+```
+
+**Invariant:** Forking produces a world with identical `stateHash` and `traceHash` but independent `lineage.timelineId`. Mutations to the child never affect the parent.
+
+### 21.16 — Adapter Implementation Checklist
+
+An adapter integrating CE must:
+
+- [ ] Call `createEngine()` once, `createWorld()` once per world
+- [ ] Canonical-sort interventions by `{tick, sequence}` before `submitBatch()`
+- [ ] Call `snapshot()` before any mutation if rollback is needed
+- [ ] Persist `serializeCheckpoint()` output to durable storage
+- [ ] Persist `serializeDelivery()` output alongside checkpoint
+- [ ] Call `enforceRetention()` at least once per tick (or delegate to CE's `advance()`)
+- [ ] Register consumers with `registerConsumer()` before first `poll()`
+- [ ] Call `ack()` after successfully processing events
+- [ ] Handle `"gap"` poll results by offering `resync()` or adapter-held archive
+- [ ] Call `migrateWorld()` on any checkpoint older than `CURRENT_SCHEMA_VERSION`
+- [ ] Expose `stateHash()` for determinism verification in debug builds
+
+### 21.17 — Game Developer Usage Pattern
+
+```typescript
+import { createEngine, createWorld, submitIntervention, tick, snapshot, factStream } from "causality-engine";
+
+// 1. Create
+const engine = createEngine();
+const world = createWorld({ seed: 42 }, engine);
+
+// 2. Submit causal actions
+submitIntervention(world, {
+  id: "player-1",
+  tick: 10,
+  actor: "player",
+  action: "destroy_infrastructure",
+  target: { type: "infrastructure", id: "grain_road" },
+  location: "RC",
+  magnitude: 0.8,
+  causalDomains: [
+    { domain: "economy", pressure: 0.8, valence: 1, scope: "regional" },
+    { domain: "faction", pressure: 0.4, valence: 1, scope: "regional" },
+  ],
+});
+
+// 3. Advance
+while (world.tick < 50) {
+  tick(world, engine);
+}
+
+// 4. Inspect
+console.log("Tick:", world.tick);
+console.log("Hash:", stateHash(world));
+
+// 5. Snapshot for persistence
+const checkpoint = snapshot(world);
+
+// 6. Query events
+const facts = factStream(world);
+console.log("Events:", facts.length);
+```
+
+### 21.18 — Adapter Usage Pattern
+
+```typescript
+import {
+  createEngine, createWorld, submitBatch, advance, snapshot,
+  checkpoint, serializeCheckpoint, createDeliveryState, registerConsumer,
+  poll, ack, stateSync, resync, serializeDelivery,
+  enforceRetention, compactHistory, classifyCheckpoint, canRewindTo,
+  forkTimeline, rewindTo, interventionsAfter, migrateWorld,
+  deserializeCheckpoint, validateCheckpoint, restoreCheckpoint,
+} from "causality-engine";
+
+const engine = createEngine();
+const world = createWorld({ seed: 42 }, engine);
+const delivery = createDeliveryState();
+
+// Register consumers
+registerConsumer(delivery, "ui");
+registerConsumer(delivery, "ai-brain");
+
+// Run loop
+for (let i = 0; i < 100; i++) {
+  // Submit canonical-sorted interventions
+  submitBatch(world, sortedInterventions);
+  
+  // Advance one tick
+  advance(world, engine, 1);
+  
+  // Enforce retention
+  enforceRetention(world);
+  
+  // Poll for each consumer
+  for (const consumerId of ["ui", "ai-brain"]) {
+    const result = poll(world, delivery, consumerId);
+    if (result.status === "events") {
+      // Process events...
+      ack(delivery, consumerId, result.throughSeq);
+    } else if (result.status === "gap") {
+      // Offer resync or adapter archive...
+    }
+  }
+  
+  // Periodic checkpoint
+  if (world.tick % 10 === 0) {
+    const env = checkpoint(world, `tick-${world.tick}`);
+    const serialized = serializeCheckpoint(env);
+    const deliverySnapshot = serializeDelivery(delivery);
+    // Persist both to storage...
+  }
+}
+
+// Branching
+const branch = forkTimeline(world, engine, "what-if-subsidy", { inheritPending: false });
+// ... run branch ...
+const branchCheckpoint = checkpoint(branch);
+const restored = restoreCheckpoint(branchCheckpoint);
+attachEngine(restored.value.world, engine);
+
+// Migration
+const loaded = deserializeCheckpoint(oldJson);
+if (loaded.ok) {
+  const migrated = migrateWorld(loaded.value.state);
+  // ...
+}
+```
+
+### 21.19 — What Makes This API Different
+
+| Property | Typical Game API | CE Public API |
+|----------|-----------------|---------------|
+| **Determinism** | Best-effort | Guaranteed (given canonical input order) |
+| **State identity** | Caller manages | `stateHash` / `traceHash` built-in |
+| **Event semantics** | Commands or signals | Historical facts only |
+| **Persistence** | Serialize everything | Split: world state vs delivery cursors |
+| **Branching** | Clone + mutate | Fork + independent lineage |
+| **Causal trace** | Log after the fact | Embedded in provenance DAG |
+| **Eviction** | Silent data loss | Explicit gap with recovery direction |
+
+### 21.20 — Versioning Strategy
+
+The public API is versioned separately from the internal schema:
+
+| Component | Versioning | Current |
+|-----------|-----------|---------|
+| Public API | Semver (breaking = major bump) | 0.1.0 (pre-release) |
+| Checkpoint format | `CHECKPOINT_FORMAT_VERSION` (integer) | 1 |
+| Schema version | `CURRENT_SCHEMA_VERSION` (integer) | 7 |
+| Event ontology | `EVENT_CATALOG` keys (additive only) | 7 types |
+
+**Rule:** Adding a new public export is a minor bump. Removing or changing a public export is a major bump. Adding a new event type is additive (no version bump). Adding a new field to WorldState requires schema migration and a minor bump.
+
+### 21.21 — Open Questions
+
+1. **Should `submitIntervention` return a `Result` type?** Current design throws on invalid input. A Result type would be safer for adapter integration but adds overhead to the hot path.
+
+2. **Should `Engine` be opaque or inspectable?** Currently it is a plain interface. Making it opaque (branded type) prevents adapter misuse but reduces flexibility.
+
+3. **Should `snapshot()` return a `CheckpointEnvelope` instead of `WorldState`?** A raw `WorldState` snapshot is simpler but loses checkpoint metadata. The adapter could wrap it, but CE could also do it automatically.
+
+4. **Should the public API include `explain()`?** Causal explanation is powerful for debugging but exposes provenance internals. A simplified "why did X happen?" helper might be useful.
+
+5. **Should `advance()` be public or adapter-facing?** It is a convenience wrapper, but exposing it means game developers can advance without understanding tick semantics.
+
+### 21.22 — Acceptance Criteria
+
+The §21 task is complete when:
+
+- [ ] `src/api/public.ts` exists and compiles clean
+- [ ] `src/poc/public-api.test.ts` exists with:
+  - Misuse-attack suite (invalid inputs, stale ticks, missing targets)
+  - Immutability/ownership tests (snapshot isolation, fork independence)
+  - Complete deterministic scenario run entirely through public API
+- [ ] `tsc --noEmit` clean
+- [ ] Full test suite (305+) still passes
+- [ ] §21 document complete (this section)
+
 
