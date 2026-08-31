@@ -24,48 +24,26 @@ function createTestWorld(): { world: WorldState; engine: Engine } {
   return { world, engine };
 }
 
+function base(id: string, action: string): Omit<Intervention, "target" | "location"> {
+  return {
+    id,
+    tick: 0,
+    actor: "player",
+    action,
+    intent: "cross-platform-test",
+    magnitude: 1,
+    causalDomains: [],
+    provenance: { submittedAtTick: 0, sequence: 0 },
+  };
+}
+
 function getInterventions(): Intervention[] {
   return [
-    {
-      id: "cp-int-1",
-      target: { regionId: "highland-ridge", domain: "economy" },
-      type: "destroy_infrastructure",
-      params: { infrastructureId: "grain-storage" },
-      magnitude: 1.0,
-      causalDomains: ["economy"],
-    },
-    {
-      id: "cp-int-2",
-      target: { regionId: "highland-ridge", domain: "civic" },
-      type: "kill_merchant",
-      params: { merchantId: "grain-merchant" },
-      magnitude: 1.0,
-      causalDomains: ["civic"],
-    },
-    {
-      id: "cp-int-3",
-      target: { regionId: "highland-ridge", domain: "economy" },
-      type: "destroy_bridge",
-      params: { bridgeId: "highland-bridge" },
-      magnitude: 1.0,
-      causalDomains: ["economy", "infrastructure"],
-    },
-    {
-      id: "cp-int-4",
-      target: { regionId: "highland-ridge", domain: "civic" },
-      type: "hold_civic_rally",
-      params: { topic: "grain crisis" },
-      magnitude: 0.8,
-      causalDomains: ["civic"],
-    },
-    {
-      id: "cp-int-5",
-      target: { regionId: "highland-ridge", domain: "economy" },
-      type: "destroy_grain_storage",
-      params: {},
-      magnitude: 0.6,
-      causalDomains: ["economy"],
-    },
+    { ...base("cp-int-1", "destroy_infrastructure"), target: { type: "infrastructure", id: "grain_warehouse" }, location: "RF" },
+    { ...base("cp-int-2", "kill_entity"), target: { type: "entity", id: "a07" }, location: "RF" },
+    { ...base("cp-int-3", "destroy_infrastructure"), target: { type: "infrastructure", id: "grain_road" }, location: "HT" },
+    { ...base("cp-int-4", "hold_public_rally"), target: { type: "region", id: "RF" }, location: "RF" },
+    { ...base("cp-int-5", "grant_merchant_subsidy"), target: { type: "region", id: "HT" }, location: "HT" },
   ];
 }
 
@@ -104,18 +82,18 @@ function runExperiment() {
     // Submit intervention at designated ticks
     if (interventionIdx < interventions.length && t === interventionTicks[interventionIdx]) {
       const iv = interventions[interventionIdx];
-      const accepted = submitIntervention(world, engine, iv);
+      const accepted = submitIntervention(world, iv, engine);
       results.interventionResults.push({
         tick: t,
         id: iv.id,
         accepted: accepted,
-        target: iv.target.regionId,
+        target: iv.target.id,
       });
       interventionIdx++;
     }
 
     // Advance one tick
-    advance(world, engine);
+    advance(world, engine, 1);
 
     // Record hash at key ticks
     if ([0, 1, 5, 10, 20, 50, 99].includes(t)) {
