@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://p017wsverify"]
+
+[ext_resource type="Script" path="res://ws_verify.gd" id="1_wsverify"]
+
+[node name="WsVerify" type="Node"]
+script = ExtResource("1_wsverify")

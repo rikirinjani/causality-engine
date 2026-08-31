@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://p017wsmain"]
+
+[ext_resource type="Script" path="res://ws_main.gd" id="1_wsmain"]
+
+[node name="WsMain" type="Node2D"]
+script = ExtResource("1_wsmain")
