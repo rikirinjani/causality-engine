@@ -133,7 +133,7 @@ describe("P-006 §22.3 — Causal consequences originate from CE", () => {
     const adapter = createAdapter(42);
     // Get baseline prices
     const baselineView = consumeAndProject(adapter);
-    const baselinePrice = baselineView.towns["RF"].grainPrice;
+    const baselinePrice = baselineView.towns["RF"]!.grainPrice;
 
     // Destroy the bridge
     gameTurn(adapter, { kind: "destroy_bridge", location: "RF" }, 5);
@@ -146,7 +146,7 @@ describe("P-006 §22.3 — Causal consequences originate from CE", () => {
     const afterView = consumeAndProject(adapter);
     // Price should have changed (CE propagated the economic shock)
     // The adapter did NOT directly modify grainPrice
-    expect(afterView.towns["RF"].grainPrice).not.toBe(baselinePrice);
+    expect(afterView.towns["RF"]!.grainPrice).not.toBe(baselinePrice);
   });
 
   it("kill_merchant causes faction hostility changes via CE", () => {
@@ -169,7 +169,7 @@ describe("P-006 §22.3 — Causal consequences originate from CE", () => {
   it("hold_civic_rally causes civic pressure via CE, not economic", () => {
     const adapter = createAdapter(42);
     const baselineView = consumeAndProject(adapter);
-    const baselinePrice = baselineView.towns["RF"].grainPrice;
+    const baselinePrice = baselineView.towns["RF"]!.grainPrice;
 
     gameTurn(adapter, { kind: "hold_civic_rally", location: "RF" }, 5);
     for (let i = 0; i < 10; i++) {
@@ -180,7 +180,7 @@ describe("P-006 §22.3 — Causal consequences originate from CE", () => {
     // Civic rally should NOT directly change grain price (only civic pressure)
     // But CE may have indirect effects through its causal model
     // The key assertion: the adapter didn't directly modify the price
-    expect(afterView.towns["RF"].grainPrice).toBeDefined();
+    expect(afterView.towns["RF"]!.grainPrice).toBeDefined();
   });
 });
 
@@ -319,7 +319,7 @@ describe("P-006 §22.6 — StateSync recovery", () => {
     const sync = stateSync(adapter.world);
     expect(sync.kind).toBe("state_sync");
     expect(sync.regions["RF"]).toBeDefined();
-    expect(sync.regions["RF"].grainPrice).toBeDefined();
+    expect(sync.regions["RF"]!.grainPrice).toBeDefined();
 
     // Save and restore adapter
     const snapshot = saveAdapter(adapter);
@@ -375,10 +375,10 @@ describe("P-006 §22.7 — Deterministic replay", () => {
     for (const townId of ["RF", "HT", "PS"]) {
       const t1 = run1.finalView.towns[townId];
       const t2 = run2.finalView.towns[townId];
-      expect(t1.grainPrice).toBe(t2.grainPrice);
-      expect(t1.grainStock).toBe(t2.grainStock);
-      expect(t1.unrest).toBe(t2.unrest);
-      expect(t1.patrolDemand).toBe(t2.patrolDemand);
+      expect(t1!.grainPrice).toBe(t2!.grainPrice);
+      expect(t1!.grainStock).toBe(t2!.grainStock);
+      expect(t1!.unrest).toBe(t2!.unrest);
+      expect(t1!.patrolDemand).toBe(t2!.patrolDemand);
     }
   });
 
@@ -501,9 +501,9 @@ describe("P-006 §22.9 — Game-facing projection determinism", () => {
     const view1 = consumeAndProject(adapter1);
     const view2 = consumeAndProject(adapter2);
 
-    expect(view1.towns["RF"].grainPrice).toBe(view2.towns["RF"].grainPrice);
-    expect(view1.towns["RF"].grainStock).toBe(view2.towns["RF"].grainStock);
-    expect(view1.towns["RF"].unrest).toBe(view2.towns["RF"].unrest);
+    expect(view1.towns["RF"]!.grainPrice).toBe(view2.towns["RF"]!.grainPrice);
+    expect(view1.towns["RF"]!.grainStock).toBe(view2.towns["RF"]!.grainStock);
+    expect(view1.towns["RF"]!.unrest).toBe(view2.towns["RF"]!.unrest);
   });
 
   it("projection includes all 3 towns and 2 factions", () => {
@@ -514,9 +514,9 @@ describe("P-006 §22.9 — Game-facing projection determinism", () => {
     expect(Object.keys(view.factions)).toHaveLength(2);
 
     for (const townId of ["RF", "HT", "PS"]) {
-      expect(view.towns[townId].id).toBe(townId);
-      expect(view.towns[townId].name).toBeDefined();
-      expect(view.towns[townId].grainPrice).toBeGreaterThan(0);
+      expect(view.towns[townId]!.id).toBe(townId);
+      expect(view.towns[townId]!.name).toBeDefined();
+      expect(view.towns[townId]!.grainPrice).toBeGreaterThan(0);
     }
   });
 });
@@ -574,11 +574,11 @@ describe("P-006 §22.11 — Full scenario demonstration", () => {
 
     // Bridge destruction should cause:
     // - Trade route no longer intact
-    expect(afterBridge.towns["RF"].tradeRouteIntact).toBe(false);
-    expect(afterBridge.towns["HT"].tradeRouteIntact).toBe(false);
+    expect(afterBridge.towns["RF"]!.tradeRouteIntact).toBe(false);
+    expect(afterBridge.towns["HT"]!.tradeRouteIntact).toBe(false);
 
     // - Grain price changes (CE propagated economic shock)
-    expect(afterBridge.towns["RF"].grainPrice).not.toBe(baselineView.towns["RF"].grainPrice);
+    expect(afterBridge.towns["RF"]!.grainPrice).not.toBe(baselineView.towns["RF"]!.grainPrice);
 
     // - Faction relation exists (hostility may have increased then decayed)
     expect(afterBridge.factions["MG"]).toBeDefined();

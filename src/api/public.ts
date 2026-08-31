@@ -35,7 +35,8 @@ export type {
 } from "../core/types.js";
 
 // ── Configuration (GAME DEVELOPER) ─────────────────────────────────────────
-export { SimConfig, DEFAULT_CONFIG, makeConfig } from "../core/config.js";
+export { DEFAULT_CONFIG, makeConfig } from "../core/config.js";
+export type { SimConfig } from "../core/config.js";
 
 // ── Checkpoint (ADAPTER-FACING) ────────────────────────────────────────────
 export {
@@ -50,13 +51,17 @@ export {
 } from "../core/persistence.js";
 
 // ── Events (ADAPTER-FACING) ────────────────────────────────────────────────
-export { factStream, fullRecord, isConsumerFact } from "../core/events.js";
+export { factStream, fullRecord, isConsumerFact, stream } from "../core/events.js";
+export { type EventAttribution, attributeEvent } from "../core/events.js";
 
 // ── Hash (ADAPTER-FACING) ──────────────────────────────────────────────────
 export { stateHash, traceHash, configHash } from "../core/hash.js";
 
 // ── Lineage (embedded in WorldState) ───────────────────────────────────────
 export type { Lineage } from "../core/genealogy.js";
+
+// ── Provenance / Attribution (ADAPTER-FACING) ─────────────────────────────
+export { explain, type Explanation, type RootCause, type ProvenanceNode } from "../core/provenance.js";
 
 // ════════════════════════════════════════════════════════════════════════════
 // ADAPTER-FACING: Delivery (§19, §20)

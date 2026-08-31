@@ -216,6 +216,25 @@ export function factStream(state: WorldState): WorldEvent[] {
   return canonicalOrder(state.events.filter(isConsumerFact));
 }
 
+/**
+ * Windowed access to the fact stream. Returns at most `limit` consumer facts
+ * whose `streamSeq` is strictly greater than `afterSeq`.
+ *
+ * Returns facts in canonical order with stable streamSeq values. An empty result
+ * means either (a) no new facts exist yet or (b) the requested window is beyond
+ * the newest fact — the caller can distinguish by comparing afterSeq to
+ * state.highestEmittedSeq.
+ *
+ * If `afterSeq < state.oldestRetainedSeq - 1`, the caller's cursor has been
+ * evicted. The caller should use `classifyCursor()` / `describeGap()` to detect
+ * this before calling stream().
+ */
+export function stream(state: WorldState, afterSeq: number, limit = 100): WorldEvent[] {
+  const all = factStream(state);
+  const filtered = all.filter((e) => e.streamSeq > afterSeq);
+  return filtered.slice(0, limit);
+}
+
 /** The full record including engine internals — for debugging and determinism audits. */
 export function fullRecord(state: WorldState): WorldEvent[] {
   return canonicalOrder(state.events);

@@ -387,7 +387,7 @@ function projectState(adapter: AdapterState, recentEvents: GameEvent[]): GameVie
   for (const [key, value] of Object.entries(world.relations)) {
     const match = key.match(/^(\w+)>/);
     if (match) {
-      const factionId = match[1];
+      const factionId = match[1]!;
       if (!factions[factionId]) {
         factions[factionId] = {
           id: factionId,
