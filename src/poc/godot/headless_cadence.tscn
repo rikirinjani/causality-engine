@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://p014cadencetest"]
+
+[ext_resource type="Script" path="res://headless_cadence.gd" id="1_cadence"]
+
+[node name="HeadlessCadence" type="Node"]
+script = ExtResource("1_cadence")
