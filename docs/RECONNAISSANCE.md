@@ -2588,4 +2588,123 @@ P-005 tested whether an external developer can build a correct game adapter usin
 - `configHash` enables config comparison without migration
 - Checkpoint serialization/deserialization is stable across versions
 
+### 22 — P-006: Minimal Game-Shaped Adapter (Final Report)
+
+#### Central Question
+
+> **Can CE actually serve as the causal world layer underneath a game, with the game adapter remaining a thin translation/projection layer rather than becoming a second simulation engine?**
+
+**Answer: YES.** The adapter (`src/poc/game-adapter.ts`) is 350 lines. It contains zero causal simulation logic. All consequences originate from CE. The adapter is purely: translate → submit → consume → project.
+
+#### Deliverables
+
+| # | Deliverable | Status |
+|---|-------------|--------|
+| 1 | Game-shaped adapter architecture | ✅ `src/poc/game-adapter.ts` |
+| 2 | Adapter/world-state boundary | ✅ §4 of adapter |
+| 3 | Intervention translation model | ✅ §4 of adapter (4 actions) |
+| 4 | Event-consumption results | ✅ §6 of adapter + tests |
+| 5 | Restart/recovery results | ✅ §8 of adapter + tests |
+| 6 | Deterministic replay results | ✅ §9 of adapter + tests |
+| 7 | Causal-attribution findings | ✅ §10 of adapter + tests |
+| 8 | API friction findings | ✅ §22.12 tests |
+| 9 | Implementation changes | ✅ None to CE core |
+| 10 | Complete verification results | ✅ 414/414 tests |
+| 11 | Remaining API risks | ✅ See below |
+| 12 | Recommendation for next gate | ✅ See below |
+
+#### Game Scenario
+
+- 3 towns: Riverford (RF), Hilltown (HT), Portside (PS)
+- 2 factions: Merchant Guild (MG), Wardens (WA)
+- Trade infrastructure: grain_road (RF↔HT), grain_warehouse (RF), town_shrine (all)
+- 20 entities: farmers, merchants, guards, artisans
+- 4 player actions: destroy_bridge, kill_merchant, destroy_grain_storage, hold_civic_rally
+
+#### Adapter Architecture
+
+```
+GAME-SIDE STATE (projection)          CE STATE (truth)
+─────────────────────────             ────────────────
+town.grainPrice      ← derived from   region.prices["grain"]
+town.grainStock      ← derived from   region.stocks["grain"]
+town.patrolDemand    ← derived from   region.patrolDemand
+town.unrest          ← derived from   region.unrest
+town.tradeRouteIntact ← derived from  infrastructure["grain_road"].health > 0
+faction.hostility    ← derived from   relations["MG>player"]
+```
+
+The adapter does NOT maintain its own causal model. Every game-facing value is a projection of CE state.
+
+#### Intervention Translation
+
+| Player Action | CE Action | CE Target |
+|---------------|-----------|-----------|
+| destroy_bridge | destroy_infrastructure | grain_road |
+| kill_merchant | kill_entity | entity ID |
+| destroy_grain_storage | destroy_infrastructure | grain_warehouse |
+| hold_civic_rally | hold_public_rally | region |
+
+The adapter sets NO causalDomains, NO magnitude consequences. CE computes all of that.
+
+#### Deterministic Replay Results
+
+- Same seed (42) + same actions → identical `stateHash`, `traceHash`, game-facing projection
+- Different seeds → different hashes
+- Event identities match across replays
+- Verified across multiple replay runs
+
+#### Restart/Recovery Results
+
+- `saveAdapter()` → `restoreAdapter()` preserves CE state + delivery cursor
+- Restored adapter can continue playing
+- Delivery cursor survives process boundary
+- `stateSync()` enables recovery without full event history
+
+#### Causal Attribution Findings
+
+**What the adapter CAN determine:**
+- Current state via `stateSync()` (prices, stocks, unrest, patrolDemand)
+- Recent events via `factStream()` (what happened)
+- Which interventions occurred via `interventionsAfter()`
+
+**What the adapter CANNOT determine:**
+- Why a specific change occurred (causal chain traversal)
+- Which intervention caused a specific event
+- The root cause of a price change
+
+**Minimum useful `explain()` contract:**
+1. `explainEvent(eventId)` → returns intervention ID that caused this event
+2. `explainChange(townId, field)` → returns list of interventions that affected this field
+3. These require provenance graph traversal, which is currently INTERNAL only
+
+#### API Friction Findings
+
+| Finding | Classification | Severity |
+|---------|---------------|----------|
+| `factStream()` returns ALL historical events — no incremental slicing | API ergonomics | Medium |
+| No `explain()` helper for causal attribution | Missing API capability | High |
+| `stateSync()` returns snapshot only, no event history | Documentation problem | Low |
+| `poll()` returns "caught_up" not "empty" — can confuse initial state | API ergonomics | Low |
+| `consumeAndProject()` must handle gap recovery internally | Adapter pattern | Low |
+| Relations only defined for MG>player — WA has no relation entry | CE content gap | Low |
+
+#### Implementation Changes
+
+**None to CE core.** The adapter uses only public API. All findings are about API ergonomics, not architectural defects.
+
+#### Remaining API Risks
+
+1. **Causal attribution gap**: Without `explain()`, game UIs cannot show "why did X happen?" This is the highest-priority API gap.
+2. **Event volume**: `factStream()` returns all events. Long-running games will need pagination or windowing.
+3. **Retention gaps**: The adapter must handle gaps via `stateSync()` resync. This works but is non-obvious.
+
+#### Recommendation for Next Gate
+
+**Proceed to Gate 3 (Unreal integration) with the following prerequisites:**
+1. Implement `explainEvent(eventId)` returning the intervention ID that caused an event
+2. Add event windowing/pagination to `factStream()` or provide a `recentEvents(tick)` helper
+3. Document the adapter pattern (translate → submit → consume → project) as the canonical integration approach
+
+The core architecture is proven: CE can serve as the causal world layer underneath a game. The adapter remains thin. The causal model lives entirely in CE.
 
