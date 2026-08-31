@@ -1,0 +1,19 @@
+; Engine configuration file.
+; Do not edit by hand.
+
+[application]
+
+config/name="CE Godot Demo"
+config/description="P-014: CE + Godot feasibility experiment"
+run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.7")
+config/icon="res://icon.svg"
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
