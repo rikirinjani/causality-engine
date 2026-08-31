@@ -14,6 +14,7 @@ export {
   createEngine,
   createWorld,
   submitIntervention,
+  submitBatch,
   tick,
   advance,
   snapshot,

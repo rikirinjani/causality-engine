@@ -220,9 +220,14 @@ export function factStream(state: WorldState): WorldEvent[] {
  * Windowed access to the fact stream. Returns at most `limit` consumer facts
  * whose `streamSeq` is strictly greater than `afterSeq`.
  *
- * Returns facts in canonical order with stable streamSeq values. An empty result
- * means either (a) no new facts exist yet or (b) the requested window is beyond
- * the newest fact — the caller can distinguish by comparing afterSeq to
+ * Returns facts in **delivery order (ascending streamSeq)** — the same order `poll()`
+ * hands to consumers. `factStream` (canonicalCompare order) is the audit/presentation
+ * view; `stream()` is the consumption view, and the two must not disagree on within-tick
+ * ordering or a consumer reading history via `stream()` and live events via `poll()`
+ * would see different orders (P-016 finding).
+ *
+ * An empty result means either (a) no new facts exist yet or (b) the requested window is
+ * beyond the newest fact — the caller can distinguish by comparing afterSeq to
  * state.highestEmittedSeq.
  *
  * If `afterSeq < state.oldestRetainedSeq - 1`, the caller's cursor has been
@@ -231,7 +236,7 @@ export function factStream(state: WorldState): WorldEvent[] {
  */
 export function stream(state: WorldState, afterSeq: number, limit = 100): WorldEvent[] {
   const all = factStream(state);
-  const filtered = all.filter((e) => e.streamSeq > afterSeq);
+  const filtered = all.filter((e) => e.streamSeq > afterSeq).sort((a, b) => a.streamSeq - b.streamSeq);
   return filtered.slice(0, limit);
 }
 
