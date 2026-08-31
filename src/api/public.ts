@@ -3,13 +3,13 @@
  *
  * This module re-exports only the symbols a game developer needs to create,
  * run, snapshot, restore, and query a causal world. All other engine internals
- * (provenance, convergence, delivery, branching, lifecycle, migration) are
- * adapter-facing or internal and live outside this surface.
+ * (provenance, convergence, domain resolvers, harness) are internal and live
+ * outside this surface.
  *
  * @module causality-engine/public
  */
 
-// ── Core operations ────────────────────────────────────────────────────────
+// ── Core operations (GAME DEVELOPER) ───────────────────────────────────────
 export {
   createEngine,
   createWorld,
@@ -21,7 +21,7 @@ export {
   type Engine,
 } from "../core/world.js";
 
-// ── Types the developer directly works with ────────────────────────────────
+// ── Types the developer directly works with (GAME DEVELOPER) ───────────────
 export type {
   WorldState,
   Intervention,
@@ -34,10 +34,10 @@ export type {
   WorldEvent,
 } from "../core/types.js";
 
-// ── Configuration ──────────────────────────────────────────────────────────
+// ── Configuration (GAME DEVELOPER) ─────────────────────────────────────────
 export { SimConfig, DEFAULT_CONFIG, makeConfig } from "../core/config.js";
 
-// ── Checkpoint (for persistence round-trip) ────────────────────────────────
+// ── Checkpoint (ADAPTER-FACING) ────────────────────────────────────────────
 export {
   type CheckpointEnvelope,
   createCheckpoint,
@@ -49,11 +49,83 @@ export {
   type RestoredWorld,
 } from "../core/persistence.js";
 
-// ── Events (for querying historical facts) ─────────────────────────────────
+// ── Events (ADAPTER-FACING) ────────────────────────────────────────────────
 export { factStream, fullRecord, isConsumerFact } from "../core/events.js";
 
-// ── Hash (for determinism verification) ────────────────────────────────────
-export { stateHash, traceHash } from "../core/hash.js";
+// ── Hash (ADAPTER-FACING) ──────────────────────────────────────────────────
+export { stateHash, traceHash, configHash } from "../core/hash.js";
 
 // ── Lineage (embedded in WorldState) ───────────────────────────────────────
 export type { Lineage } from "../core/genealogy.js";
+
+// ════════════════════════════════════════════════════════════════════════════
+// ADAPTER-FACING: Delivery (§19, §20)
+// ════════════════════════════════════════════════════════════════════════════
+export {
+  type Cursor,
+  type ConsumerChannel,
+  type DeliveryState,
+  type PollResult,
+  type StateSync,
+  createDeliveryState,
+  registerConsumer,
+  poll,
+  ack,
+  serializeDelivery,
+  deserializeDelivery,
+  stateSync,
+  resync,
+} from "../core/delivery.js";
+
+// ════════════════════════════════════════════════════════════════════════════
+// ADAPTER-FACING: Branching (§17)
+// ════════════════════════════════════════════════════════════════════════════
+export {
+  type BranchHandle,
+  type RewindResult,
+  forkTimeline,
+  rewindTo,
+  interventionsAfter,
+  replayAbandoned,
+  checkpoint,
+} from "../core/timeline.js";
+
+// ════════════════════════════════════════════════════════════════════════════
+// ADAPTER-FACING: Lifecycle (§18)
+// ════════════════════════════════════════════════════════════════════════════
+export {
+  type CheckpointClass,
+  type CheckpointClassification,
+  type RetentionPolicy,
+  type CompactionReport,
+  type RewindVerdict,
+  RETAIN_ALL,
+  RESUME_ONLY,
+  recentWindowPolicy,
+  compactHistory,
+  classifyCheckpoint,
+  canRewindTo,
+} from "../core/lifecycle.js";
+
+// ════════════════════════════════════════════════════════════════════════════
+// ADAPTER-FACING: Retention (§20)
+// ════════════════════════════════════════════════════════════════════════════
+export {
+  type RetentionWindow,
+  type RetentionGap,
+  enforceRetention,
+  classifyCursor,
+  describeGap,
+  retentionWindow,
+  EVENT_RETENTION_LIMIT,
+} from "../core/retention.js";
+
+// ════════════════════════════════════════════════════════════════════════════
+// ADAPTER-FACING: Migration (§18)
+// ════════════════════════════════════════════════════════════════════════════
+export {
+  type MigrationResult,
+  CURRENT_SCHEMA_VERSION,
+  MIN_MIGRATABLE_SCHEMA_VERSION,
+  migrateWorld,
+} from "../core/migration.js";

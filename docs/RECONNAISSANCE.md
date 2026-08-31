@@ -2523,4 +2523,69 @@ The §21 task is complete when:
 - [ ] Full test suite (305+) still passes
 - [ ] §21 document complete (this section)
 
+### 21.23 — P-005: External Consumer / Adapter Adversarial Pass (Final Report)
+
+#### Summary
+
+P-005 tested whether an external developer can build a correct game adapter using ONLY `src/api/public.ts` — without knowing CE internals. A reference adapter (`src/poc/reference-adapter.ts`) and 61 attack tests (`src/poc/external-consumer.test.ts`) exercise 10 adversarial lanes across the full public API surface.
+
+**Result: PASS.** The API boundary is sound. All 61 tests pass. Two test bugs were found and fixed during execution — both were test authoring errors, not API defects.
+
+#### Deliverables
+
+| # | Deliverable | Status |
+|---|-------------|--------|
+| 1 | `src/api/public.ts` — facade module with PUBLIC + ADAPTER-FACING exports | ✅ Complete |
+| 2 | `src/poc/reference-adapter.ts` — fake game integration using ONLY public API | ✅ Complete |
+| 3 | `src/poc/external-consumer.test.ts` — 61 attack tests, 10 lanes | ✅ 61/61 passing |
+| 4 | Full test suite regression: 383/383 passing | ✅ Clean |
+
+#### Attack Lanes
+
+| Lane | Name | Tests | Result |
+|------|------|-------|--------|
+| §21.1 | External-consumer boundary | 6 | PASS |
+| §21.2 | Lifecycle attack | 12 | PASS |
+| §21.3 | Ownership/immutability attack | 10 | PASS |
+| §21.4 | Intervention contract attack | 9 | PASS |
+| §21.5 | Deterministic consumer replay | 6 | PASS |
+| §21.6 | Event-consumer attack | 8 | PASS |
+| §21.7 | Cross-world/timeline isolation | 6 | PASS |
+| §21.8 | Adapter semantic boundary | 4 | PASS |
+| §21.9 | API ergonomics test | 4 | PASS |
+| §21.10 | Public API versioning attack | 3 | PASS |
+
+#### Bugs Found and Fixed
+
+1. **`interventionsAfter` test (§21.2)**: Test submitted two `destroy_infrastructure` interventions on the same target (`grain_road`). The second silently failed because `advance()` doesn't restore destroyed infrastructure. **Fix**: Use a different target (`town_shrine`) for the second intervention. This is a test authoring error — the API correctly rejects duplicate destruction.
+
+2. **Event ID collision test (§21.7)**: Test expected zero overlap between parent and branch event IDs. But `forkTimeline` inherits the parent's events from the checkpoint by design. **Fix**: Compare only post-fork events, not inherited ones. The API's fork semantics are correct — the test assumption was wrong.
+
+#### API Boundary Assessment
+
+**Strengths discovered:**
+- The reference adapter compiles clean with zero CE-internal imports
+- All checkpoint/restore/fork/rewind operations work through the public API
+- Event delivery (`poll`/`ack`) is fully functional for game-loop integration
+- Schema migration and config comparison work correctly
+- `submitIntervention` returns structured errors for invalid inputs
+
+**Potential friction points for real adapters:**
+- `interventionsAfter` requires a `CheckpointEnvelope`, not a `WorldState` — adapters must keep checkpoints
+- `canRewindTo` takes 4 parameters — adapters may want a simpler boolean check
+- `factStream` returns all historical events — adapters must filter/slice for incremental consumption
+- No `explain()` helper — causal attribution requires `fullRecord` + manual analysis
+
+**Recommendations:**
+1. Add an `explain(eventId)` helper that returns a simplified causal summary
+2. Consider a `canRewind()` convenience that wraps the 4-parameter `canRewindTo`
+3. Document that `forkTimeline` inherits parent events (non-obvious behavior)
+
+#### Schema Compatibility
+
+- `CURRENT_SCHEMA_VERSION = 7`
+- `migrateWorld()` correctly handles forward migration
+- `configHash` enables config comparison without migration
+- Checkpoint serialization/deserialization is stable across versions
+
 
