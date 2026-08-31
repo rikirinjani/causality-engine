@@ -66,4 +66,7 @@ CE treats Kronos Engine as its architectural ancestor — reusing the domain-ind
 
 ## License
 
-TBD.
+Apache-2.0 — see [LICENSE](LICENSE).
+
+Copyright 2026 Causality Engine Contributors. Game projects can use CE in
+commercial closed-source titles; see LICENSE for patent grant and attribution requirements.

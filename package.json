@@ -1,8 +1,10 @@
 {
   "name": "causality-engine",
   "version": "0.1.0",
+  "description": "Deterministic causal world-simulation layer for games",
+  "license": "Apache-2.0",
   "type": "module",
-  "private": true,
+  "private": false,
   "scripts": {
     "build": "tsc",
     "check": "tsc --noEmit",
