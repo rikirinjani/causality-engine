@@ -1,15 +1,56 @@
 {
   "name": "causality-engine",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Deterministic causal world-simulation layer for games",
   "license": "Apache-2.0",
   "type": "module",
   "private": false,
+  "main": "./dist/api/product.js",
+  "types": "./dist/api/product.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/api/product.d.ts",
+      "import": "./dist/api/product.js"
+    },
+    "./product": {
+      "types": "./dist/api/product.d.ts",
+      "import": "./dist/api/product.js"
+    },
+    "./engine": {
+      "types": "./dist/api/public.d.ts",
+      "import": "./dist/api/public.js"
+    }
+  },
+  "files": [
+    "dist",
+    "docs/GETTING-STARTED.md",
+    "docs/API-REFERENCE.md",
+    "docs/COMPATIBILITY.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "causality",
+    "simulation",
+    "deterministic",
+    "game-engine",
+    "world-simulation",
+    "provenance",
+    "branching",
+    "godot"
+  ],
   "scripts": {
     "build": "tsc",
     "check": "tsc --noEmit",
     "test": "vitest run",
-    "start": "tsx src/poc/main.ts"
+    "test:product": "vitest run src/product",
+    "start": "tsx src/poc/main.ts",
+    "serve": "tsx src/poc/ce-ws-server.ts",
+    "example": "tsx examples/minimal-integration.ts",
+    "verify:replay": "tsx scripts/replay-smoke.ts"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
