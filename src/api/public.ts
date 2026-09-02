@@ -62,7 +62,7 @@ export { stateHash, traceHash, configHash } from "../core/hash.js";
 export type { Lineage } from "../core/genealogy.js";
 
 // ── Provenance / Attribution (ADAPTER-FACING) ─────────────────────────────
-export { explain, type Explanation, type RootCause, type ProvenanceNode } from "../core/provenance.js";
+export { explain, key, type Explanation, type RootCause, type ProvenanceNode } from "../core/provenance.js";
 
 // ════════════════════════════════════════════════════════════════════════════
 // ADAPTER-FACING: Delivery (§19, §20)

@@ -29,3 +29,7 @@ credentials/
 
 # Self-harness local traces (kept out of the public repo; they live in the parent workspace)
 self-harness/
+
+
+# CE generated state files
+headless-checkpoint.json
