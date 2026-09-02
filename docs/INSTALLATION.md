@@ -7,15 +7,32 @@ CE ships in two independent pieces. You may need one or both.
 | **CE runtime** | The engine. TypeScript/Node. | Everyone. |
 | **Godot addon** | GDScript client for the runtime. | Godot developers. |
 
+> **Not yet published.** CE is not on npm and not in the Godot Asset Library.
+> Every install below starts from a git clone. `npm install causality-engine`
+> will fail with a 404 until publication.
+
 ---
 
 ## Part 1 — CE runtime
 
 ### Option A: in-process library (TypeScript / JavaScript games)
 
+Build a local tarball and install it:
+
 ```bash
-npm install causality-engine
+git clone https://github.com/rikirinjani/causality-engine.git
+cd causality-engine
+npm install
+npm pack                 # produces causality-engine-<version>.tgz
 ```
+
+Then, in your own project:
+
+```bash
+npm install /path/to/causality-engine-<version>.tgz
+```
+
+Your project must be ESM — add `"type": "module"` to its `package.json`.
 
 ```typescript
 import { createGame, intervene, step, inspect } from "causality-engine/product";
@@ -27,10 +44,12 @@ intervene(game, {
   location: "RF",
 });
 step(game, 5);
-console.log(inspect(game).regions.RF.prices.grain);
+console.log(inspect(game).regions.RF.prices.grain);   // 13.13
 ```
 
 No separate process, no network hop. See [GETTING-STARTED.md](./GETTING-STARTED.md).
+
+After publication this becomes `npm install causality-engine`.
 
 ### Option B: standalone runtime (any language, including Godot)
 
@@ -44,6 +63,12 @@ npm run serve
 ```
 CE WebSocket server running on ws://127.0.0.1:7778
 ```
+
+Leave this running. Your game connects over WebSocket; the runtime is
+language-agnostic.
+
+If you see `EADDRINUSE`, a CE runtime is already listening on 7778 — reuse it or
+stop it first.
 
 Your game connects over WebSocket. The runtime is language-agnostic.
 
@@ -79,6 +104,9 @@ cp -r causality-engine/godot/addons/causality_engine \
       your-godot-project/addons/
 ```
 
+The `addons/` directory may not exist yet in a brand-new project — create it
+first (`mkdir -p your-godot-project/addons`).
+
 ### Enable (optional)
 
 **Project → Project Settings → Plugins → Causality Engine → Enable**
@@ -88,21 +116,42 @@ without it — `ce_client.gd` is a plain script you can instantiate.
 
 ### Verify
 
+Create `verify_ce.gd` in your project root:
+
 ```gdscript
 extends Node
 
 func _ready() -> void:
     var ce := preload("res://addons/causality_engine/ce_client.gd").new()
     add_child(ce)
-    ce.connected.connect(func(id, tl): print("CE connected: ", id))
+    ce.connected.connect(func(id, _timeline_id): print("CE connected: ", id))
     ce.connect_to_ce()
+
+    # Headless runs need an explicit exit; a windowed run does not.
+    await get_tree().create_timer(5.0).timeout
+    print("connection_open=", ce.connection_open)
+    get_tree().quit(0 if ce.connection_open else 1)
 ```
 
-With the runtime listening, you should see `CE connected: ws-1`.
+Attach it to a `Node` in a scene, then run:
+
+```bash
+godot --headless --path your-godot-project res://your_scene.tscn
+```
+
+With the runtime listening you should see:
+
+```
+CE connected: ws-1
+connection_open=true
+```
+
+If it prints nothing, the runtime is not reachable — check
+`print(ce.endpoint())` and that `npm run serve` is running.
 
 ### Requirements
 
-- Godot **4.3+**
+- Godot **4.3+** — tested on 4.3, 4.4, and 4.7.2
 - A reachable CE runtime (Part 1, Option B)
 
 The addon has no other dependency. It reads no file outside its own directory
@@ -135,9 +184,8 @@ not interchangeable.
 ```bash
 cd causality-engine
 
-npm test                     # 746 tests
-npm run verify:replay        # deterministic replay
-npm run example              # full loop, in-process
+npm run verify:release   # typecheck + 746 tests + replay + invariants
+npm run example          # full loop, in-process
 ```
 
 Godot side, with the runtime already listening:
@@ -151,6 +199,11 @@ Expected:
 ```
 === RESULTS: 23 passed, 0 failed ===
 ```
+
+Note: bare `tsc` (`npm run check`) reports pre-existing type errors in
+`src/poc` proof-of-concept tooling. Those files are not shipped. Use
+`npm run check:dist` or `npm run verify:release`, which typecheck only the code
+that ships.
 
 ---
 

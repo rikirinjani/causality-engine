@@ -1,0 +1,6 @@
+{
+  "name": "ce-clean-consumer",
+  "private": true,
+  "type": "module",
+  "description": "Clean-room consumer. Imports CE only as an installed package."
+}

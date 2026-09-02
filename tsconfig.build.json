@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmitOnError": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": [
+    "src/api",
+    "src/core",
+    "src/game",
+    "src/product"
+  ],
+  "exclude": [
+    "src/poc",
+    "**/*.test.ts"
+  ]
+}

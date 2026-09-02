@@ -1,10 +1,18 @@
 {
   "name": "causality-engine",
   "version": "1.0.0-rc.1",
-  "description": "Deterministic causal world-simulation layer for games",
+  "description": "Deterministic causal world-simulation layer for games. CE owns world state, causal propagation, RNG, events, provenance, branching and rewind; your game renders.",
   "license": "Apache-2.0",
   "type": "module",
   "private": false,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rikirinjani/causality-engine.git"
+  },
+  "homepage": "https://github.com/rikirinjani/causality-engine#readme",
+  "bugs": {
+    "url": "https://github.com/rikirinjani/causality-engine/issues"
+  },
   "main": "./dist/api/product.js",
   "types": "./dist/api/product.d.ts",
   "exports": {
@@ -30,6 +38,9 @@
     "docs/INSTALLATION.md",
     "docs/RUNTIME-REQUIREMENTS.md",
     "docs/GODOT-INTEGRATION.md",
+    "docs/DEPLOYMENT.md",
+    "docs/TROUBLESHOOTING.md",
+    "CHANGELOG.md",
     "README.md",
     "LICENSE"
   ],
@@ -48,15 +59,18 @@
     "godot"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "check": "tsc --noEmit",
+    "check:dist": "tsc -p tsconfig.build.json --noEmit",
     "test": "vitest run",
     "test:product": "vitest run src/product",
     "start": "tsx src/poc/main.ts",
     "serve": "tsx src/poc/ce-ws-server.ts",
     "example": "tsx examples/minimal-integration.ts",
     "verify:replay": "tsx scripts/replay-smoke.ts",
-    "verify:invariants": "tsx scripts/invariant-check.ts"
+    "verify:invariants": "tsx scripts/invariant-check.ts",
+    "verify:release": "npm run check:dist && npm run test && npm run verify:replay && npm run verify:invariants",
+    "prepack": "npm run build"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

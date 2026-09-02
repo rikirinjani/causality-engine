@@ -1,0 +1,161 @@
+name: verify
+
+# Release verification from a clean checkout.
+#
+# The point of this workflow is to prove CE's verification does not depend on
+# any developer machine's accumulated state. Everything it needs comes from the
+# repository plus `npm ci`.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  engine:
+    name: engine (node ${{ matrix.node }} / ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node: ['20', '22']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck shippable code
+        run: npm run check:dist
+
+      - name: Test suite
+        run: npm test
+
+      - name: Deterministic replay
+        run: npm run verify:replay
+
+      - name: Frozen-invariant check
+        run: npm run verify:invariants
+
+  package:
+    name: package artifact
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build distribution
+        run: npm run build
+
+      - name: Pack tarball
+        run: npm pack
+
+      - name: Audit tarball contents
+        shell: bash
+        run: |
+          TARBALL=$(ls causality-engine-*.tgz)
+          echo "auditing $TARBALL"
+          tar -tzf "$TARBALL" > contents.txt
+
+          fail=0
+          # Nothing from the development or research tree may ship.
+          for pattern in 'package/src/' '\.test\.' 'package/docs/P-0' 'RECONNAISSANCE' 'godot-iso' '\.png$' 'package/examples/' 'package/scripts/'; do
+            if grep -qE "$pattern" contents.txt; then
+              echo "FAIL: tarball contains $pattern"
+              grep -E "$pattern" contents.txt | head -5
+              fail=1
+            fi
+          done
+
+          # Required entry points must be present.
+          for required in 'package/dist/api/product.js' 'package/dist/api/product.d.ts' 'package/godot/addons/causality_engine/ce_client.gd' 'package/README.md' 'package/LICENSE'; do
+            if ! grep -qF "$required" contents.txt; then
+              echo "FAIL: tarball missing $required"
+              fail=1
+            fi
+          done
+
+          if [ "$fail" -ne 0 ]; then exit 1; fi
+          echo "package audit clean ($(wc -l < contents.txt) entries)"
+
+      - name: Clean-consumer install and verify
+        shell: bash
+        run: |
+          TARBALL=$(pwd)/$(ls causality-engine-*.tgz)
+          CONSUMER=$(mktemp -d)
+          cp scripts/clean-consumer-package.json "$CONSUMER/package.json"
+          cp scripts/clean-consumer.mjs "$CONSUMER/consumer.mjs"
+          cd "$CONSUMER"
+          npm install "$TARBALL"
+          node consumer.mjs
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: causality-engine-tarball
+          path: causality-engine-*.tgz
+          if-no-files-found: error
+
+  boundary:
+    name: boundary audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: No RNG or wall-clock in the Godot addon
+        shell: bash
+        run: |
+          if grep -rnE 'randi\(|randf\(|randomize\(|rand_range\(|RandomNumberGenerator' \
+               godot/addons/causality_engine/*.gd | grep -vE '^\S+:[0-9]+:\s*#'; then
+            echo "FAIL: RNG found in the Godot addon"
+            exit 1
+          fi
+          echo "addon RNG audit clean"
+
+      - name: No RNG or wall-clock in the product layer
+        shell: bash
+        run: |
+          FOUND=0
+          for f in src/product/*.ts src/api/product.ts; do
+            case "$f" in *.test.ts) continue;; esac
+            if grep -nE 'Math\.random|new Date\(' "$f"; then
+              echo "FAIL: RNG or wall-clock in $f"
+              FOUND=1
+            fi
+          done
+          [ "$FOUND" -eq 0 ] || exit 1
+          echo "product layer audit clean"
+
+      - name: No developer-machine paths
+        shell: bash
+        run: |
+          if grep -rnE '/Users/[a-z]|C:\\\\Users|/home/[a-z]|Project_v2' \
+               godot/addons godot/sample src/product src/api docs/INSTALLATION.md 2>/dev/null; then
+            echo "FAIL: developer-machine path found"
+            exit 1
+          fi
+          echo "path audit clean"
+
+      - name: Engine files unchanged by product work
+        shell: bash
+        run: |
+          # The product layer must never author causal pressure.
+          if grep -rn 'causalDomains: \[{' src/product/ 2>/dev/null; then
+            echo "FAIL: product layer authors causal contributions"
+            exit 1
+          fi
+          echo "causal authority audit clean"
