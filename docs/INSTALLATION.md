@@ -7,9 +7,11 @@ CE ships in two independent pieces. You may need one or both.
 | **CE runtime** | The engine. TypeScript/Node. | Everyone. |
 | **Godot addon** | GDScript client for the runtime. | Godot developers. |
 
-> **Not yet published.** CE is not on npm and not in the Godot Asset Library.
-> Every install below starts from a git clone. `npm install causality-engine`
-> will fail with a 404 until publication.
+> **Not on npm.** `npm install causality-engine` will fail with a 404.
+> Both pieces are downloadable from the
+> [GitHub release](https://github.com/rikirinjani/causality-engine/releases/latest)
+> — no repository clone needed. The Godot Asset Library submission is also
+> pending.
 
 ---
 
@@ -17,19 +19,13 @@ CE ships in two independent pieces. You may need one or both.
 
 ### Option A: in-process library (TypeScript / JavaScript games)
 
-Build a local tarball and install it:
+Download the package from the
+[latest release](https://github.com/rikirinjani/causality-engine/releases/latest)
+and install it:
 
 ```bash
-git clone https://github.com/rikirinjani/causality-engine.git
-cd causality-engine
-npm install
-npm pack                 # produces causality-engine-<version>.tgz
-```
-
-Then, in your own project:
-
-```bash
-npm install /path/to/causality-engine-<version>.tgz
+curl -LO https://github.com/rikirinjani/causality-engine/releases/download/v1.0.0-rc.1/causality-engine-1.0.0-rc.1.tgz
+npm install ./causality-engine-1.0.0-rc.1.tgz
 ```
 
 Your project must be ESM — add `"type": "module"` to its `package.json`.
@@ -49,9 +45,23 @@ console.log(inspect(game).regions.RF.prices.grain);   // 13.13
 
 No separate process, no network hop. See [GETTING-STARTED.md](./GETTING-STARTED.md).
 
-After publication this becomes `npm install causality-engine`.
+<details>
+<summary>Building the package from source instead</summary>
+
+```bash
+git clone https://github.com/rikirinjani/causality-engine.git
+cd causality-engine
+npm install
+npm pack                 # produces causality-engine-<version>.tgz
+```
+
+</details>
+
+After npm publication this becomes `npm install causality-engine`.
 
 ### Option B: standalone runtime (any language, including Godot)
+
+The runtime is a server process, so this path needs the repository:
 
 ```bash
 git clone https://github.com/rikirinjani/causality-engine.git
@@ -70,8 +80,6 @@ language-agnostic.
 If you see `EADDRINUSE`, a CE runtime is already listening on 7778 — reuse it or
 stop it first.
 
-Your game connects over WebSocket. The runtime is language-agnostic.
-
 **Node 20+ is required for both options.** This is a real dependency, not an
 implementation detail: if you ship a Godot game using Option B, the CE runtime
 process must be running wherever the game runs.
@@ -82,13 +90,23 @@ process must be running wherever the game runs.
 
 ### Install
 
-Copy the addon directory into your project:
+Download the addon zip from the
+[latest release](https://github.com/rikirinjani/causality-engine/releases/latest)
+and unzip it at your project root:
+
+```bash
+cd your-godot-project
+curl -LO https://github.com/rikirinjani/causality-engine/releases/download/v1.0.0-rc.1/causality-engine-godot-addon-1.0.0-rc.1.zip
+unzip causality-engine-godot-addon-1.0.0-rc.1.zip
+```
+
+The zip already contains the `addons/` prefix, so this produces:
 
 ```
 your-godot-project/
   project.godot
   addons/
-    causality_engine/          <- copy this whole directory
+    causality_engine/
       plugin.cfg
       plugin.gd
       ce_client.gd
@@ -97,15 +115,16 @@ your-godot-project/
       README.md
 ```
 
-From a cloned CE repository:
+<details>
+<summary>Copying from a cloned repository instead</summary>
 
 ```bash
+mkdir -p your-godot-project/addons
 cp -r causality-engine/godot/addons/causality_engine \
       your-godot-project/addons/
 ```
 
-The `addons/` directory may not exist yet in a brand-new project — create it
-first (`mkdir -p your-godot-project/addons`).
+</details>
 
 ### Enable (optional)
 
@@ -216,6 +235,11 @@ you remove those references too.
 ---
 
 ## Troubleshooting
+
+**`npm install causality-engine` returns 404** — CE is not on npm yet. Download
+the tarball from the
+[latest release](https://github.com/rikirinjani/causality-engine/releases/latest)
+and install that file instead.
 
 **`connect_to_url failed`** — no runtime at the endpoint. Check `ce.endpoint()`
 and that `npm run serve` is running.

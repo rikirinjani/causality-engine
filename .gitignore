@@ -33,3 +33,7 @@ self-harness/
 
 # CE generated state files
 headless-checkpoint.json
+
+# Build artifacts produced by npm pack (published to GitHub releases, not committed)
+*.tgz
+dist-artifacts/
