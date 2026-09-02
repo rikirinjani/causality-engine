@@ -37,3 +37,9 @@ headless-checkpoint.json
 # Build artifacts produced by npm pack (published to GitHub releases, not committed)
 *.tgz
 dist-artifacts/
+
+# Website build output and local browser cache
+web/dist/
+web/node_modules/
+.shim-check/
+.browser-parity/

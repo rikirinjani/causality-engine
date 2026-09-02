@@ -1,0 +1,81 @@
+name: pages
+
+# Build the CE website and publish it to GitHub Pages.
+#
+# The site imports CE from the engine's own build output, so the engine is built
+# first. That means the deployed demo always runs the same code that ships in the
+# release tarball — the site cannot drift from the engine it advertises.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "web/**"
+      - "src/**"
+      - "tsconfig.build.json"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let an in-flight deploy finish rather than cancelling it.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install engine dependencies
+        run: npm ci
+
+      - name: Build engine
+        run: npm run build
+
+      - name: Verify the browser SHA-256 shim matches node:crypto
+        run: node scripts/verify-shim.mjs
+
+      - name: Verify the shim-backed engine reproduces the replay baseline
+        run: node scripts/verify-browser-parity.mjs
+
+      - name: Install site dependencies
+        working-directory: web
+        run: npm install
+
+      - name: Build site
+        working-directory: web
+        run: npm run build
+
+      - name: Verify the built site in a real browser
+        working-directory: web
+        run: |
+          npm i -D puppeteer
+          npx puppeteer browsers install chrome
+          node ../scripts/verify-web-demo.mjs
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

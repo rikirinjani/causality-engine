@@ -1,0 +1,100 @@
+/* ===========================================================================
+   Causality Engine — design tokens
+
+   Dark by default. The subject is a simulation you inspect, so the page reads
+   like an instrument panel rather than a brochure: near-black ground, one cool
+   accent for causal links, warm amber reserved for consequence.
+
+   Type: system stack only — no CDN fonts, nothing to block first paint.
+   Numbers are monospace everywhere. On this site the numbers are the argument.
+   =========================================================================== */
+
+:root {
+  /* ── Ground ──────────────────────────────────────────────────────────── */
+  --ink-900: #0b0d11;
+  --ink-850: #0f1218;
+  --ink-800: #14181f;
+  --ink-750: #1a1f28;
+  --ink-700: #222834;
+  --ink-600: #2e3644;
+  --ink-500: #3d4657;
+
+  /* ── Text ────────────────────────────────────────────────────────────── */
+  --text-hi: #eef1f6;
+  --text: #c8cfda;
+  --text-lo: #8e99a9;
+  --text-faint: #66707e;
+
+  /* ── Accent: causal links, provenance edges ──────────────────────────── */
+  --cyan-400: #5fd4c4;
+  --cyan-500: #3fbdac;
+  --cyan-600: #2b9c8d;
+  --cyan-dim: rgba(95, 212, 196, 0.13);
+
+  /* ── Consequence: prices moving, pressure resolving ──────────────────── */
+  --amber-400: #f0bd5c;
+  --amber: #e9a740;
+  --amber-600: #c8862b;
+  --amber-dim: rgba(233, 167, 64, 0.13);
+
+  /* ── Divergence: the second timeline ─────────────────────────────────── */
+  --violet-400: #a78bda;
+  --violet-dim: rgba(167, 139, 218, 0.13);
+
+  /* ── State ───────────────────────────────────────────────────────────── */
+  --red-400: #e8705f;
+  --red-dim: rgba(232, 112, 95, 0.13);
+  --green-400: #6cc48f;
+  --green-dim: rgba(108, 196, 143, 0.13);
+
+  /* ── Type ────────────────────────────────────────────────────────────── */
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, "Noto Sans", sans-serif;
+  --font-mono:
+    ui-monospace, "SF Mono", SFMono-Regular, "Cascadia Mono", "Liberation Mono",
+    Menlo, Consolas, monospace;
+
+  /* Fluid scale, clamped so 360px and 1920px both read well. */
+  --step--1: clamp(0.78rem, 0.76rem + 0.1vw, 0.84rem);
+  --step-0: clamp(0.94rem, 0.9rem + 0.18vw, 1.03rem);
+  --step-1: clamp(1.08rem, 1rem + 0.35vw, 1.28rem);
+  --step-2: clamp(1.3rem, 1.15rem + 0.7vw, 1.7rem);
+  --step-3: clamp(1.6rem, 1.3rem + 1.4vw, 2.4rem);
+  --step-4: clamp(2rem, 1.5rem + 2.6vw, 3.6rem);
+
+  /* ── Space: 4px base ─────────────────────────────────────────────────── */
+  --sp-1: 0.25rem;
+  --sp-2: 0.5rem;
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-5: 1.5rem;
+  --sp-6: 2rem;
+  --sp-7: 3rem;
+  --sp-8: 4rem;
+  --sp-9: 6rem;
+
+  /* ── Geometry ────────────────────────────────────────────────────────── */
+  --radius-sm: 4px;
+  --radius: 8px;
+  --radius-lg: 14px;
+  --border: 1px solid var(--ink-700);
+  --border-lo: 1px solid var(--ink-750);
+
+  --shell: 1180px;
+  --prose: 68ch;
+
+  /* ── Motion: short, and only where it explains something ─────────────── */
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --dur-fast: 120ms;
+  --dur: 220ms;
+  --dur-slow: 420ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur: 0ms;
+    --dur-slow: 0ms;
+  }
+}

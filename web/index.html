@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Causality Engine — a game world that remembers why</title>
+    <meta
+      name="description"
+      content="A deterministic causal simulation layer for games. Your game renders; CE decides what happens in the world and why. Branch timelines, rewind, and trace any consequence back to the action that caused it."
+    />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0b0d11" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Causality Engine" />
+    <meta
+      property="og:description"
+      content="A deterministic causal simulation layer for games. Destroy a bridge, watch grain prices move, then ask the engine why."
+    />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="canonical" href="https://rikirinjani.github.io/causality-engine/" />
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <!-- ================= HEADER ================= -->
+    <header class="site-header">
+      <div class="shell site-header__inner">
+        <a class="brand" href="#top">
+          <svg
+            class="brand__mark"
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+          >
+            <circle cx="6" cy="6" r="2.4" fill="#5fd4c4" />
+            <circle cx="18" cy="6" r="2.4" fill="#5fd4c4" />
+            <circle cx="12" cy="18" r="2.4" fill="#e9a740" />
+            <path d="M6 8.4 L12 15.6" stroke="#3fbdac" stroke-width="1.4" />
+            <path d="M18 8.4 L12 15.6" stroke="#3fbdac" stroke-width="1.4" />
+          </svg>
+          <span>Causality&nbsp;Engine</span>
+          <span class="brand__version">1.0.0-rc.1</span>
+        </a>
+
+        <nav class="site-nav" aria-label="Primary">
+          <div class="site-nav__links">
+            <a href="#demo">Demo</a>
+            <a href="#different">Why it's different</a>
+            <a href="#install">Install</a>
+            <a href="#evidence">Evidence</a>
+            <a href="#test">Test it</a>
+          </div>
+          <a
+            class="btn btn--ghost btn--sm"
+            href="https://github.com/rikirinjani/causality-engine"
+            >GitHub</a
+          >
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- ================= HERO + DEMO ================= -->
+      <section class="shell hero" id="top">
+        <div class="hero__grid">
+          <div>
+            <span class="pill pill--rc"
+              ><span class="pill__dot"></span>Release candidate · not yet used by anyone outside
+              the project</span
+            >
+
+            <h1 style="margin-top: var(--sp-4)">A game world that remembers why.</h1>
+
+            <p class="hero__sub">
+              Causality Engine is a <strong>deterministic causal simulation layer</strong>. Your
+              game renders. CE decides what happens in the world — and can explain every
+              consequence back to the action that caused it.
+            </p>
+
+            <div class="hero__actions">
+              <a class="btn btn--primary" href="#demo">Try it in your browser</a>
+              <a class="btn btn--ghost" href="#install">Install</a>
+            </div>
+
+            <div class="hero__meta">
+              <span>TypeScript</span>
+              <span>Godot 4 addon</span>
+              <span>Apache-2.0</span>
+              <span>No dependencies in-process</span>
+            </div>
+          </div>
+
+          <!-- ---------- LIVE DEMO ---------- -->
+          <div class="demo" data-demo id="demo">
+            <div class="demo__bar">
+              <span class="demo__title">
+                <span class="demo__badge">live</span>
+                Riverford · seed 42
+              </span>
+              <span class="demo__readout">
+                <span>tick <b class="num" data-tick>0</b></span>
+                <span>hash <b class="num" data-hash>········</b></span>
+              </span>
+            </div>
+
+            <div class="demo__body">
+              <div class="demo__stage">
+                <div class="world">
+                  <div class="world__row">
+                    <div class="node" data-node="road">
+                      <span class="node__label">grain_road</span>
+                      <span class="node__value" data-road>intact</span>
+                      <span class="node__note">trade route into Riverford</span>
+                    </div>
+                    <span class="edge" data-edge="road" aria-hidden="true"></span>
+                    <div class="node" data-node="stock">
+                      <span class="node__label">grain stock</span>
+                      <span class="node__value num" data-stock>0.0</span>
+                      <span class="node__note">stored in Riverford</span>
+                    </div>
+                  </div>
+
+                  <div class="world__row">
+                    <div class="node" data-node="price">
+                      <span class="node__label">grain price</span>
+                      <span class="node__value num" data-price>0.00</span>
+                      <span class="node__note">Riverford market</span>
+                    </div>
+                    <span class="edge" aria-hidden="true"></span>
+                    <div class="node" data-node="hostility">
+                      <span class="node__label">faction hostility</span>
+                      <span class="node__value num" data-hostility>0.00</span>
+                      <span class="node__note">toward Riverford</span>
+                    </div>
+                  </div>
+                </div>
+
+                <p
+                  class="node__note"
+                  style="margin-top: var(--sp-4); font-family: var(--font-mono)"
+                >
+                  timeline <span data-timeline>—</span>
+                </p>
+              </div>
+
+              <div class="demo__side">
+                <div class="controls">
+                  <div class="controls__group">
+                    <span class="controls__legend">1 · set a branch point</span>
+                    <div class="controls__row">
+                      <button class="btn btn--ghost btn--sm" data-act="checkpoint" disabled>
+                        Checkpoint
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="controls__group">
+                    <span class="controls__legend">2 · intervene</span>
+                    <div class="controls__row">
+                      <button class="btn btn--danger btn--sm" data-act="destroy" disabled>
+                        Destroy grain road
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="controls__group">
+                    <span class="controls__legend">3 · let time pass</span>
+                    <div class="controls__row">
+                      <button class="btn btn--ghost btn--sm" data-act="advance" disabled>
+                        Advance 5 ticks
+                      </button>
+                      <button class="btn btn--ghost btn--sm" data-act="why" disabled>
+                        Why this price?
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="controls__group">
+                    <span class="controls__legend">4 · branch</span>
+                    <div class="controls__row">
+                      <button class="btn btn--ghost btn--sm" data-act="fork" disabled>
+                        Fork timeline B
+                      </button>
+                      <button class="btn btn--ghost btn--sm" data-act="compare" disabled>
+                        Compare A / B
+                      </button>
+                    </div>
+                    <div class="controls__row" style="margin-top: var(--sp-2)">
+                      <button class="btn btn--ghost btn--sm" data-act="reset" disabled>
+                        Reset world
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="log" data-log role="log" aria-live="polite" aria-label="Engine log">
+                  <div class="log__empty">Loading engine…</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="why" data-why hidden></div>
+            <div class="compare" data-compare hidden></div>
+
+            <p class="hint" data-hint>Loading the engine…</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= WHAT'S DIFFERENT ================= -->
+      <section class="shell section" id="different">
+        <span class="eyebrow">What makes it different</span>
+        <h2>Three properties most simulations give up.</h2>
+        <p class="lede">
+          Plenty of games simulate an economy. What CE keeps that they usually discard is the
+          ability to reproduce a run exactly, explain any value in it, and split it into
+          alternatives.
+        </p>
+
+        <div class="cards">
+          <article class="card">
+            <h3>Determinism</h3>
+            <p>
+              Same seed, same actions, same world — down to the bit. State identity is a SHA-256
+              hash of the world, so two runs are either identical or provably not.
+            </p>
+            <p class="card__demo">
+              Verified across seven environments — Linux, macOS and Windows on Node 20 and 22 —
+              all producing <b>5404d32e…</b>
+            </p>
+          </article>
+
+          <article class="card">
+            <h3>Retrospective attribution</h3>
+            <p>
+              CE records a provenance graph as it propagates. Ask why a value is what it is and it
+              walks the graph back to the originating action. If it can't explain something, it
+              says so rather than guessing.
+            </p>
+            <p class="card__demo">
+              In the demo above: <b>why(RF:price:grain)</b> → rooted in
+              <b>destroy_infrastructure</b> at tick 0
+            </p>
+          </article>
+
+          <article class="card">
+            <h3>Branching and rewind</h3>
+            <p>
+              Checkpoint a world, rewind it, or fork an independent timeline and take a different
+              action. Both timelines stay causally distinct — CE never collapses two histories
+              that happen to look alike.
+            </p>
+            <p class="card__demo">
+              Physical state and causal history hash separately, so
+              <b>same world / different history</b> is representable
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <!-- ================= BOUNDARY ================= -->
+      <section class="shell section" id="boundary">
+        <span class="eyebrow">The boundary</span>
+        <h2>CE owns causality. Your game owns everything you can see.</h2>
+        <p class="lede">
+          This split is the whole design. Get it wrong and determinism, attribution and branching
+          all stop meaning anything — because your game and CE would disagree about what is true.
+        </p>
+
+        <div class="boundary reveal">
+          <div class="layer layer--game">
+            <span class="layer__who">Your game</span>
+            <span class="layer__owns"
+              >Rendering · animation · camera · UI · player input · audio · presentation</span
+            >
+          </div>
+          <div class="layer layer--adapter">
+            <span class="layer__who">Adapter</span>
+            <span class="layer__owns"
+              >Player intent → CE intervention · CE state → game projection · transport ·
+              reconnection</span
+            >
+          </div>
+          <div class="layer layer--ce">
+            <span class="layer__who">Causality Engine</span>
+            <span class="layer__owns"
+              >World state · causal rules · propagation · deterministic RNG · events · provenance ·
+              persistence · branching · rewind · timeline identity</span
+            >
+          </div>
+        </div>
+
+        <p class="boundary__rule reveal">
+          <strong>Your game decides what the player did. CE decides what it caused.</strong> No
+          causal rule and no RNG belong on your side of that line — and the shipped Godot addon is
+          audited to contain neither.
+        </p>
+      </section>
+
+      <!-- ================= INSTALL ================= -->
+      <section class="shell section" id="install">
+        <span class="eyebrow">Install</span>
+        <h2>Two ways in.</h2>
+
+        <div class="notice" style="margin-top: var(--sp-5)">
+          <strong>Not on npm yet.</strong> <code>npm install causality-engine</code> will 404. Both
+          pieces download from the
+          <a href="https://github.com/rikirinjani/causality-engine/releases/latest"
+            >GitHub release</a
+          >
+          — no repository clone needed.
+        </div>
+
+        <div class="install">
+          <article class="track">
+            <div class="track__head">
+              <h3>TypeScript · in-process</h3>
+              <p>No second process, no network hop, no runtime dependencies.</p>
+            </div>
+            <div class="track__body">
+              <pre><code>curl -LO https://github.com/rikirinjani/causality-engine\
+/releases/download/v1.0.0-rc.1\
+/causality-engine-1.0.0-rc.1.tgz
+
+npm install ./causality-engine-1.0.0-rc.1.tgz</code></pre>
+              <pre><code>import { createGame, intervene, step, inspect }
+  from "causality-engine/product";
+
+const game = createGame({ seed: 42 });
+
+intervene(game, {
+  action: "destroy_infrastructure",
+  target: { type: "infrastructure", id: "grain_road" },
+  location: "RF",
+});
+
+step(game, 5);
+inspect(game).regions.RF.prices.grain;  // 13.13</code></pre>
+              <p style="font-size: var(--step--1); color: var(--text-faint)">
+                Requires Node 20+ and an ESM project (<code>"type": "module"</code>).
+              </p>
+            </div>
+          </article>
+
+          <article class="track">
+            <div class="track__head">
+              <h3>Godot 4 · addon</h3>
+              <p>Tested on Godot 4.3, 4.4 and 4.7.2.</p>
+            </div>
+            <div class="track__body">
+              <pre><code>cd your-godot-project
+curl -LO https://github.com/rikirinjani/causality-engine\
+/releases/download/v1.0.0-rc.1\
+/causality-engine-godot-addon-1.0.0-rc.1.zip
+unzip causality-engine-godot-addon-1.0.0-rc.1.zip</code></pre>
+              <pre><code>var ce := preload(
+  "res://addons/causality_engine/ce_client.gd"
+).new()
+add_child(ce)
+
+ce.connected.connect(func(id, _tl):
+    ce.create_world(42)
+    ce.request_snapshot()
+)
+ce.connect_to_ce()</code></pre>
+              <p style="font-size: var(--step--1); color: var(--text-faint)">
+                Godot talks to a CE runtime over WebSocket, so this path also needs
+                <code>npm run serve</code> from a clone. See
+                <a
+                  href="https://github.com/rikirinjani/causality-engine/blob/main/docs/GODOT-INTEGRATION.md"
+                  >Godot integration</a
+                >.
+              </p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ================= EVIDENCE ================= -->
+      <section class="shell section" id="evidence">
+        <span class="eyebrow">Evidence</span>
+        <h2>What has actually been verified.</h2>
+        <p class="lede">
+          Every figure below is a test run you can reproduce from the repository. None of it
+          establishes that CE is easy to adopt — see the next two sections for that.
+        </p>
+
+        <div class="evidence reveal">
+          <div class="table-scroll">
+            <table>
+              <caption class="visually-hidden">
+                Verification results for CE 1.0.0-rc.1
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Check</th>
+                  <th scope="col">Result</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Engine test suite</td>
+                  <td>746 / 746</td>
+                </tr>
+                <tr>
+                  <td>Clean-room consumer suite, run against the released tarball</td>
+                  <td>51 / 51</td>
+                </tr>
+                <tr>
+                  <td>Godot 4.3 integration</td>
+                  <td>23 / 23</td>
+                </tr>
+                <tr>
+                  <td>Godot 4.4 integration</td>
+                  <td>23 / 23</td>
+                </tr>
+                <tr>
+                  <td>Godot 4.7.2 integration</td>
+                  <td>23 / 23</td>
+                </tr>
+                <tr>
+                  <td>Hosted CI — 3 operating systems × 2 Node versions</td>
+                  <td>green</td>
+                </tr>
+                <tr>
+                  <td>Deterministic replay across 7 environments</td>
+                  <td>5404d32e</td>
+                </tr>
+                <tr>
+                  <td>RNG or causal rules found in the Godot addon</td>
+                  <td>0</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="evidence__foot">
+            The demo above runs this same engine build in your browser and reports the same state
+            hash the CI runners produce.
+          </p>
+        </div>
+      </section>
+
+      <!-- ================= LIMITATIONS ================= -->
+      <section class="shell section" id="limitations">
+        <span class="eyebrow">Limitations</span>
+        <h2>What CE is not.</h2>
+        <p class="lede">
+          Listed plainly, because finding these out after you've integrated is worse than reading
+          them now.
+        </p>
+
+        <div class="limits">
+          <div class="limit limit--sharp">
+            <span class="limit__what">The WebSocket runtime has no authentication</span>
+            <p class="limit__detail">
+              It binds <code>127.0.0.1</code>. Anything that can reach the port can create worlds,
+              read state and fork timelines. Exposing it beyond localhost needs a security layer
+              CE does not provide.
+            </p>
+          </div>
+
+          <div class="limit limit--sharp">
+            <span class="limit__what">Nobody outside the project has used it</span>
+            <p class="limit__detail">
+              Every test above was written and run by the author. That is the reason this is a
+              release candidate.
+            </p>
+          </div>
+
+          <div class="limit">
+            <span class="limit__what">Not a game engine</span>
+            <p class="limit__detail">
+              No rendering, animation, input or audio. CE is a layer underneath whatever engine
+              you already use.
+            </p>
+          </div>
+
+          <div class="limit">
+            <span class="limit__what">Single process</span>
+            <p class="limit__detail">
+              No multiplayer, no distributed simulation, one world per runtime process.
+            </p>
+          </div>
+
+          <div class="limit">
+            <span class="limit__what">At-least-once event delivery</span>
+            <p class="limit__detail">
+              Not exactly-once. Facts can be redelivered; consumers must tolerate it. The attempt
+              count is visible so you can tell.
+            </p>
+          </div>
+
+          <div class="limit">
+            <span class="limit__what">History is bounded</span>
+            <p class="limit__detail">
+              Old events and provenance are evicted to bound memory. Eviction is always reported —
+              never silent — and an incomplete explanation says so.
+            </p>
+          </div>
+
+          <div class="limit">
+            <span class="limit__what">Determinism is tested, not proven</span>
+            <p class="limit__detail">
+              Reproduced across seven environments. There is no formal proof, and floating-point
+              behaviour on untested platforms is not guaranteed.
+            </p>
+          </div>
+
+          <div class="limit">
+            <span class="limit__what">One demonstrated scenario</span>
+            <p class="limit__detail">
+              A single town with four domains. Scaling to large worlds has not been established.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TESTER CALL ================= -->
+      <section class="shell section" id="test">
+        <span class="eyebrow">The ask</span>
+        <h2>I need someone to tell me where my documentation fails.</h2>
+
+        <div class="tester reveal">
+          <p class="tester__ask">
+            I've verified this engine about a thousand ways. I have no idea whether anyone else can
+            install it.
+          </p>
+
+          <p style="color: var(--text-lo); max-width: 62ch">
+            No developer outside this project has ever used CE. That single gap — not a missing
+            feature, not a failing test — is what stands between the release candidate and a 1.0.
+            You cannot honestly call something adoptable until somebody else has adopted it.
+          </p>
+
+          <div class="tester__grid">
+            <div class="tester__what">
+              <h4>What it involves</h4>
+              <ol>
+                <li>30–45 minutes, in one sitting.</li>
+                <li>Pick a track: TypeScript or Godot.</li>
+                <li>Install CE into an empty project.</li>
+                <li>Create a world, take one action, watch a consequence.</li>
+                <li>Save and reload it.</li>
+                <li>Tell me every place you got stuck.</li>
+              </ol>
+            </div>
+
+            <div class="tester__what">
+              <h4>What I'm actually after</h4>
+              <ol>
+                <li>The step where the docs assumed knowledge you didn't have.</li>
+                <li>The command you expected to work that didn't.</li>
+                <li>The API you went looking for and couldn't find.</li>
+                <li>The moment you wanted to read the source — that one is gold.</li>
+                <li>
+                  Abandoning halfway with a clear reason is more useful to me than succeeding by
+                  guesswork.
+                </li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="tester__actions">
+            <a
+              class="btn btn--primary"
+              href="https://github.com/rikirinjani/causality-engine/blob/main/docs/INDEPENDENT-VALIDATION-BRIEF.md"
+              >Read the tester brief</a
+            >
+            <a
+              class="btn btn--ghost"
+              href="https://github.com/rikirinjani/causality-engine/issues/new"
+              >Open an issue with findings</a
+            >
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ================= FOOTER ================= -->
+    <footer class="site-footer">
+      <div class="shell">
+        <div class="site-footer__grid">
+          <div>
+            <h4>Get it</h4>
+            <ul>
+              <li>
+                <a href="https://github.com/rikirinjani/causality-engine/releases/latest"
+                  >Latest release</a
+                >
+              </li>
+              <li><a href="https://github.com/rikirinjani/causality-engine">Repository</a></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4>Learn</h4>
+            <ul>
+              <li>
+                <a
+                  href="https://github.com/rikirinjani/causality-engine/blob/main/docs/GETTING-STARTED.md"
+                  >Getting started</a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://github.com/rikirinjani/causality-engine/blob/main/docs/API-REFERENCE.md"
+                  >API reference</a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://github.com/rikirinjani/causality-engine/blob/main/docs/GODOT-INTEGRATION.md"
+                  >Godot integration</a
+                >
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h4>Operate</h4>
+            <ul>
+              <li>
+                <a
+                  href="https://github.com/rikirinjani/causality-engine/blob/main/docs/INSTALLATION.md"
+                  >Installation</a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://github.com/rikirinjani/causality-engine/blob/main/docs/DEPLOYMENT.md"
+                  >Deployment</a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://github.com/rikirinjani/causality-engine/blob/main/docs/COMPATIBILITY.md"
+                  >Compatibility</a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://github.com/rikirinjani/causality-engine/blob/main/docs/TROUBLESHOOTING.md"
+                  >Troubleshooting</a
+                >
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h4>Status</h4>
+            <ul>
+              <li>Version 1.0.0-rc.1</li>
+              <li>Apache-2.0</li>
+              <li>Not on npm yet</li>
+              <li>Awaiting first external test</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="site-footer__base">
+          <span>© <span data-year>2026</span> Causality Engine · Apache-2.0</span>
+          <span>The demo runs the real engine in your browser. No numbers on this page are staged.</span>
+        </div>
+      </div>
+    </footer>
+
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>
