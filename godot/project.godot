@@ -1,0 +1,26 @@
+; Godot project configuration.
+;
+; A clean project demonstrating the Causality Engine addon.
+; No path here refers to any developer machine or to the CE source tree.
+
+config_version=5
+
+[application]
+
+config/name="CE Minimal Sample"
+config/description="Smallest complete Causality Engine integration: connect, inspect, intervene, advance, consume, render."
+run/main_scene="res://sample/minimal_sample.tscn"
+config/features=PackedStringArray("4.3")
+
+[display]
+
+window/size/viewport_width=900
+window/size/viewport_height=520
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/causality_engine/plugin.cfg")
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"

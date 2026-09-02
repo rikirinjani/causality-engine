@@ -1,6 +1,6 @@
 {
   "name": "causality-engine",
-  "version": "0.2.0",
+  "version": "1.0.0-rc.1",
   "description": "Deterministic causal world-simulation layer for games",
   "license": "Apache-2.0",
   "type": "module",
@@ -23,9 +23,13 @@
   },
   "files": [
     "dist",
+    "godot/addons/causality_engine",
     "docs/GETTING-STARTED.md",
     "docs/API-REFERENCE.md",
     "docs/COMPATIBILITY.md",
+    "docs/INSTALLATION.md",
+    "docs/RUNTIME-REQUIREMENTS.md",
+    "docs/GODOT-INTEGRATION.md",
     "README.md",
     "LICENSE"
   ],
@@ -40,6 +44,7 @@
     "world-simulation",
     "provenance",
     "branching",
+    "rewind",
     "godot"
   ],
   "scripts": {
@@ -50,7 +55,8 @@
     "start": "tsx src/poc/main.ts",
     "serve": "tsx src/poc/ce-ws-server.ts",
     "example": "tsx examples/minimal-integration.ts",
-    "verify:replay": "tsx scripts/replay-smoke.ts"
+    "verify:replay": "tsx scripts/replay-smoke.ts",
+    "verify:invariants": "tsx scripts/invariant-check.ts"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

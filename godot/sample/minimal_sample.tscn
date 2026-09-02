@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://ceminimalsample"]
+
+[ext_resource type="Script" path="res://sample/minimal_sample.gd" id="1_sample"]
+
+[node name="MinimalSample" type="Node2D"]
+script = ExtResource("1_sample")
