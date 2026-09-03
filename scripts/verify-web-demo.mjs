@@ -166,20 +166,74 @@ try {
   // both timelines a destroyed road and the comparison would prove nothing.
   await click("[data-act=checkpoint]");
   check("fork unlocked after checkpoint", true, await enabled("[data-act=fork]"));
+  check(
+    "branch-point tick is displayed",
+    true,
+    (await text("[data-cp-state]")).includes("tick 0"),
+  );
 
   // ── Intervene ──────────────────────────────────────────────────────────
   await click("[data-act=destroy]");
   check("road reported destroyed after intervention", "destroyed", await text("[data-road]"));
-  check("advance unlocked", true, await enabled("[data-act=advance]"));
+  check("advance unlocked", true, await enabled("[data-act=advance5]"));
+  check(
+    "price unchanged before time passes (deferred resolution)",
+    "10.00",
+    await text("[data-price]"),
+  );
 
   // ── Advance: the headline determinism claim ────────────────────────────
-  await click("[data-act=advance]");
+  await click("[data-act=advance5]");
   check("tick advanced to 5", "5", await text("[data-tick]"));
   check("grain price is 13.13", "13.13", await text("[data-price]"));
   check(
     "state hash matches the P-014 baseline 5404d32e",
     "5404d32e",
     await text("[data-hash]"),
+  );
+
+  // ── Regression: hostility must actually move ───────────────────────────
+  // A previous version read a relation key ending in ">RF". CE's key is
+  // "MG>player", so nothing matched and the demo showed a permanent 0.00.
+  const hostility = Number(await text("[data-hostility]"));
+  check("hostility is a number", true, Number.isFinite(hostility));
+  check(`hostility is non-zero (got ${hostility})`, true, hostility > 0);
+  check(
+    "hostility note reports decay from a peak",
+    true,
+    (await text("[data-note=hostility]")).includes("peaked at"),
+  );
+
+  // ── Regression: history strips exist and sample per tick ───────────────
+  const priceBars = await page.$$eval("[data-spark=price] .spark__bar", (b) => b.length);
+  check(`price history has one bar per sample (got ${priceBars})`, true, priceBars >= 6);
+
+  const hostilityBars = await page.$$eval(
+    "[data-spark=hostility] .spark__bar",
+    (b) => b.length,
+  );
+  check(`hostility history rendered (got ${hostilityBars})`, true, hostilityBars >= 6);
+
+  // ── Regression: the clamp must announce itself ─────────────────────────
+  // Grain stock empties around tick 14 and the price pins to base 10 x clamp 4.
+  // Without a label, a correctly-capped economy reads as a stuck one.
+  for (let i = 0; i < 4; i += 1) await click("[data-act=advance5]");
+  check("advanced to tick 25", "25", await text("[data-tick]"));
+  check("price reached CE's ceiling", "40.00", await text("[data-price]"));
+  check(
+    "price note explains the ceiling",
+    true,
+    (await text("[data-note=price]")).includes("ceiling"),
+  );
+  check(
+    "capped state is visually marked",
+    true,
+    await page.$eval("[data-node=price]", (el) => el.classList.contains("node--capped")),
+  );
+  check(
+    "empty granary is called out",
+    true,
+    (await text("[data-note=stock]")).includes("empty"),
   );
 
   // ── Explain ────────────────────────────────────────────────────────────
@@ -207,25 +261,36 @@ try {
   const compareText = await text("[data-compare]");
   check("comparison reports distinct timelines", true, compareText.includes("distinct true"));
   check("comparison reports differing worlds", true, compareText.includes("same state false"));
+  check(
+    "comparison names the shared branch point",
+    true,
+    compareText.includes("branched from") && compareText.includes("tick 0"),
+  );
 
   // Read the two branch panels rather than substring-matching the whole block,
   // so this asserts the actual per-timeline values CE reported.
-  const branches = await page.$$eval(".branch", (nodes) =>
-    nodes.map((node) => {
-      const rows = Array.from(node.querySelectorAll(".branch__row"));
-      const value = (key) =>
-        rows
-          .find((r) => r.querySelector("dt")?.textContent?.trim() === key)
-          ?.querySelector("dd")
-          ?.textContent?.trim() ?? "";
-      return { road: value("road"), grain: value("grain"), hash: value("stateHash") };
-    }),
-  );
+  const readBranches = () =>
+    page.$$eval(".branch", (nodes) =>
+      nodes.map((node) => {
+        const rows = Array.from(node.querySelectorAll(".branch__row"));
+        const value = (key) =>
+          rows
+            .find((r) => r.querySelector("dt")?.textContent?.trim() === key)
+            ?.querySelector("dd")
+            ?.textContent?.trim() ?? "";
+        return {
+          road: value("road"),
+          grain: value("grain"),
+          hash: value("stateHash"),
+          tick: value("tick"),
+        };
+      }),
+    );
 
+  const branches = await readBranches();
   check("two branch panels rendered", 2, branches.length);
   check("timeline A shows the road destroyed", "destroyed", branches[0]?.road);
   check("timeline B kept the road intact", "intact", branches[1]?.road);
-  check("timeline A grain is 13.13", "13.13", branches[0]?.grain);
   check(
     "timeline B grain differs from A",
     true,
@@ -236,6 +301,36 @@ try {
     true,
     branches[0]?.hash !== undefined && branches[0].hash !== branches[1]?.hash,
   );
+  check("timeline B is at tick 5 (branch point 0 + 5)", "5", branches[1]?.tick);
+
+  // ── Regression: the branch point must be movable ───────────────────────
+  // Forking the same tick-0 checkpoint repeatedly looks like the fork tick is
+  // ignored. Re-checkpointing later must visibly change where B starts.
+  await click("[data-act=checkpoint]");
+  check(
+    "branch point moved to the current tick",
+    true,
+    (await text("[data-cp-state]")).includes("tick 25"),
+  );
+  check(
+    "stale comparison was retracted",
+    true,
+    await page.$eval("[data-compare]", (el) => el.hidden),
+  );
+
+  await click("[data-act=fork]");
+  await click("[data-act=compare]");
+  const rebranched = await readBranches();
+  check(
+    "re-forked timeline B starts from the new branch point (tick 30)",
+    "30",
+    rebranched[1]?.tick,
+  );
+  check(
+    "comparison names the new branch point",
+    true,
+    (await text("[data-compare]")).includes("tick 25"),
+  );
 
   // ── Reset restores the deterministic starting point ────────────────────
   await click("[data-act=reset]");
@@ -243,16 +338,25 @@ try {
   check("reset returns grain to 10.00", "10.00", await text("[data-price]"));
   check("reset restores the road", "intact", await text("[data-road]"));
   check("reset reproduces the initial hash", initialHash, await text("[data-hash]"));
+  check(
+    "reset clears the branch point",
+    true,
+    (await text("[data-cp-state]")).includes("no branch point"),
+  );
 
   // ── Determinism through the UI: repeat the run, same hash ──────────────
   await click("[data-act=checkpoint]");
   await click("[data-act=destroy]");
-  await click("[data-act=advance]");
+  await click("[data-act=advance5]");
   check(
     "second identical run reproduces 5404d32e",
     "5404d32e",
     await text("[data-hash]"),
   );
+
+  // ── Fine-grained advance ───────────────────────────────────────────────
+  await click("[data-act=advance1]");
+  check("single-tick advance works", "6", await text("[data-tick]"));
 
   // ── Accessibility smoke checks ─────────────────────────────────────────
   const focusables = await page.$$eval(

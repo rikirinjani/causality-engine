@@ -120,7 +120,8 @@
                     <div class="node" data-node="stock">
                       <span class="node__label">grain stock</span>
                       <span class="node__value num" data-stock>0.0</span>
-                      <span class="node__note">stored in Riverford</span>
+                      <span class="spark" data-spark="stock" aria-hidden="true"></span>
+                      <span class="node__note" data-note="stock">stored in Riverford</span>
                     </div>
                   </div>
 
@@ -128,22 +129,22 @@
                     <div class="node" data-node="price">
                       <span class="node__label">grain price</span>
                       <span class="node__value num" data-price>0.00</span>
-                      <span class="node__note">Riverford market</span>
+                      <span class="spark" data-spark="price" aria-hidden="true"></span>
+                      <span class="node__note" data-note="price">Riverford market</span>
                     </div>
                     <span class="edge" aria-hidden="true"></span>
                     <div class="node" data-node="hostility">
-                      <span class="node__label">faction hostility</span>
+                      <span class="node__label">MG hostility</span>
                       <span class="node__value num" data-hostility>0.00</span>
-                      <span class="node__note">toward Riverford</span>
+                      <span class="spark" data-spark="hostility" aria-hidden="true"></span>
+                      <span class="node__note" data-note="hostility">MG toward player</span>
                     </div>
                   </div>
                 </div>
 
-                <p
-                  class="node__note"
-                  style="margin-top: var(--sp-4); font-family: var(--font-mono)"
-                >
-                  timeline <span data-timeline>—</span>
+                <p class="stage__meta">
+                  <span>timeline <span data-timeline>—</span></span>
+                  <span class="cp" data-cp-state>no branch point set</span>
                 </p>
               </div>
 
@@ -153,7 +154,7 @@
                     <span class="controls__legend">1 · set a branch point</span>
                     <div class="controls__row">
                       <button class="btn btn--ghost btn--sm" data-act="checkpoint" disabled>
-                        Checkpoint
+                        Checkpoint here
                       </button>
                     </div>
                   </div>
@@ -170,8 +171,11 @@
                   <div class="controls__group">
                     <span class="controls__legend">3 · let time pass</span>
                     <div class="controls__row">
-                      <button class="btn btn--ghost btn--sm" data-act="advance" disabled>
-                        Advance 5 ticks
+                      <button class="btn btn--ghost btn--sm" data-act="advance1" disabled>
+                        +1 tick
+                      </button>
+                      <button class="btn btn--ghost btn--sm" data-act="advance5" disabled>
+                        +5 ticks
                       </button>
                       <button class="btn btn--ghost btn--sm" data-act="why" disabled>
                         Why this price?
@@ -183,7 +187,7 @@
                     <span class="controls__legend">4 · branch</span>
                     <div class="controls__row">
                       <button class="btn btn--ghost btn--sm" data-act="fork" disabled>
-                        Fork timeline B
+                        Fork from branch point
                       </button>
                       <button class="btn btn--ghost btn--sm" data-act="compare" disabled>
                         Compare A / B

@@ -396,6 +396,21 @@
   color: var(--amber-400);
 }
 
+/* A value CE has clamped, or a stock that has hit zero. Without this, a
+   correctly-capped economy reads as a broken one. */
+.node--capped {
+  border-color: rgba(167, 139, 218, 0.45);
+  background: var(--violet-dim);
+}
+
+.node--capped .node__value {
+  color: var(--violet-400);
+}
+
+.node--capped .node__note {
+  color: var(--violet-400);
+}
+
 /* A structure CE reports as destroyed. */
 .node--broken {
   border-color: rgba(232, 112, 95, 0.42);
@@ -406,6 +421,56 @@
   color: var(--red-400);
   text-decoration: line-through;
   text-decoration-color: rgba(232, 112, 95, 0.55);
+}
+
+/* ── History strip ───────────────────────────────────────────────────── */
+/* A single number hides the shape of a value that overshoots and settles.
+   Plain DOM bars rather than canvas: legible at any zoom, no measurement pass. */
+
+.spark {
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: 20px;
+  margin-top: var(--sp-2);
+  opacity: 0.85;
+}
+
+.spark__bar {
+  flex: 1 1 0;
+  min-width: 1px;
+  border-radius: 1px;
+  transition: height var(--dur-fast) var(--ease);
+}
+
+/* ── Stage footer ────────────────────────────────────────────────────── */
+
+.stage__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-4);
+  align-items: center;
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-3);
+  border-top: var(--border-lo);
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  color: var(--text-faint);
+}
+
+/* Branch-point readout. Always visible, because forking the same checkpoint
+   repeatedly looks like the fork tick is being ignored. */
+.cp {
+  padding: 0.1em 0.5em;
+  border: var(--border-lo);
+  border-radius: var(--radius-sm);
+  color: var(--text-faint);
+}
+
+.cp--set {
+  border-color: rgba(167, 139, 218, 0.4);
+  background: var(--violet-dim);
+  color: var(--violet-400);
 }
 
 /* Causal edge between two nodes. */
@@ -609,6 +674,20 @@
 .compare {
   border-top: var(--border-lo);
   padding: var(--sp-4);
+}
+
+/* Names the tick both branches came from, so a comparison cannot be read as
+   two unrelated worlds. */
+.compare__from {
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  color: var(--text-faint);
+  margin-bottom: var(--sp-3);
+}
+
+.compare__from b {
+  color: var(--violet-400);
+  font-weight: 500;
 }
 
 .compare__grid {

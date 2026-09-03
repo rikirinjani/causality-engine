@@ -367,3 +367,28 @@ export const DEMO_STRUCTURES = {
   road: "grain_road",
   warehouse: "grain_warehouse",
 } as const;
+
+/**
+ * The faction whose hostility CE actually tracks in this scenario.
+ *
+ * CE's relation key is `MG>player` — hostility of the Merchant Guild toward the
+ * player, not toward a region. An earlier version of this adapter looked for a
+ * key ending in `>RF`, matched nothing, and displayed a permanent 0.00. Reading
+ * the relation by its real key is the fix.
+ */
+export const DEMO_HOSTILITY_KEY = "MG>player";
+
+/** Faction that CE tracks hostility for. */
+export const DEMO_FACTION = "MG";
+
+/**
+ * Scenario constants CE derives its economy from, restated here so the UI can
+ * label a value as clamped without recomputing anything causal.
+ *
+ * From the engine: grain `basePrice` is 10 (game/content.ts) and
+ * `priceClampMax` is 4.0 (core/config.ts), so the price ceiling is 40.00. The
+ * demo uses this only to annotate the display.
+ */
+export const DEMO_GRAIN_BASE_PRICE = 10;
+export const DEMO_PRICE_CLAMP_MAX = 4.0;
+export const DEMO_GRAIN_PRICE_CEILING = DEMO_GRAIN_BASE_PRICE * DEMO_PRICE_CLAMP_MAX;
