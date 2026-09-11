@@ -54,9 +54,20 @@ function memMB(): number {
   return process.memoryUsage().heapUsed / 1024 / 1024;
 }
 
+/**
+ * Deterministic intervention-id sequence.
+ *
+ * Previously this used Date.now() + Math.random(), which made traceHash
+ * nondeterministic across runs (intervention ids are part of the causal
+ * history identity). A monotonic counter is deterministic within a run and
+ * identical across runs of the same scenario, so traceHash now reproduces.
+ * This is a benchmark-tool fix only; CE engine semantics are untouched.
+ */
+let benchSeq = 0;
+
 function makeIntervention(overrides: Partial<Intervention> = {}): Intervention {
   return {
-    id: `bench-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    id: `bench-${benchSeq++}`,
     tick: 0,
     actor: "player",
     action: "destroy_infrastructure",
@@ -81,8 +92,11 @@ function measureBench(
   let hash1 = "", hash2 = "", trace1 = "", trace2 = "";
   let events = 0, provenance = 0, resolutions = 0, diagnostics = 0;
 
-  // Warmup
+  // Warmup. benchSeq resets each iteration so every iteration of a scenario
+  // reproduces identical intervention ids — otherwise the traceHash
+  // determinism check below would compare two different histories.
   for (let i = 0; i < Math.min(3, iterations); i++) {
+    benchSeq = 0;
     const { world, engine } = setup();
     run(world, engine);
   }
@@ -92,6 +106,7 @@ function measureBench(
   memBefore = memMB();
 
   for (let i = 0; i < iterations; i++) {
+    benchSeq = 0;
     const { world, engine } = setup();
     const t0 = performance.now();
     run(world, engine);

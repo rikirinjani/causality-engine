@@ -72,6 +72,7 @@
     "verify:shim": "node scripts/verify-shim.mjs",
     "verify:browser": "node scripts/verify-browser-parity.mjs",
     "verify:web": "node scripts/verify-web-demo.mjs",
+    "experiment": "tsx scripts/run-experiment.ts",
     "verify:release": "npm run check:dist && npm run test && npm run verify:replay && npm run verify:invariants",
     "prepack": "npm run build"
   },
