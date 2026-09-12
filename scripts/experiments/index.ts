@@ -10,6 +10,7 @@
 import * as causalMatrix from "./causal-matrix.js";
 import * as failInject from "./fail-inject.js";
 import * as adversarial from "./adversarial.js";
+import * as provenanceEviction from "./provenance-eviction.js";
 
 export interface ExperimentAdapter {
   enumerateUnits(): Array<{ experiment: string; unitId: string; [k: string]: unknown }>;
@@ -20,4 +21,5 @@ export const EXPERIMENTS: Record<string, ExperimentAdapter> = {
   "causal-matrix": causalMatrix as unknown as ExperimentAdapter,
   "fail-inject": failInject as unknown as ExperimentAdapter,
   adversarial: adversarial as unknown as ExperimentAdapter,
+  "provenance-eviction": provenanceEviction as unknown as ExperimentAdapter,
 };
