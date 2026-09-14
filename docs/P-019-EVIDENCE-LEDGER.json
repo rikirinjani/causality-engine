@@ -1,0 +1,208 @@
+{
+  "artifact": "Causality Engine",
+  "pass": "P-019",
+  "title": "Paper Evidence Ledger — architectural claims to evidence mapping",
+  "date": "2026-08-31",
+  "suite": { "test_files": 18, "tests_passed": 660, "tsc_new_errors": 0, "retrace": "clean" },
+  "schema_version": 7,
+  "limits": { "EVENT_RETENTION_LIMIT": 500, "PROVENANCE_LIMIT": 4000, "RESOLUTION_LOG_LIMIT": 4000 },
+  "claims": [
+    {
+      "id": "C01",
+      "claim": "stateHash and traceHash have distinct semantics: stateHash reflects authoritative world state; traceHash reflects history and changes only when history (events/provenance) changes.",
+      "invariant": "stateHash excludes event history and delivery state; traceHash includes history; eviction changes traceHash but never stateHash.",
+      "evidence_tests": ["src/poc/retention.test.ts (§20.16 hashes)", "src/poc/temporal-semantics.test.ts (state vs trace)", "src/poc/events.test.ts (events & stateHash)", "src/poc/determinism.test.ts", "src/poc/runtime-boundary.test.ts"],
+      "experiments": ["cross-platform-determinism.ts (P-011)", "long-run.ts (P-011)", "benchmark.ts (P-010)"],
+      "results": ["Deterministic replay produces identical hashes across 5+ runs (VER-2026-020)", "Eviction changes traceHash, never stateHash (retention 51 tests)", "Cross-platform hashes identical (P-011, P-014)"],
+      "artifacts": ["docs/RECONNAISSANCE.md §19/§20", "docs/P-014-GODOT-FEASIBILITY.md", "docs/P-015-VISUAL-GODOT.md", "VER-2026-014..018", "failures: events-in-statehash-category-error, provenance-ids-leak-into-state-identity"],
+      "strength": "SUPPORTED"
+    },
+    {
+      "id": "C02",
+      "claim": "Deterministic continuation: same seed + same intervention sequence + same tick schedule yields identical world state, hashes, RNG state, and causal decisions.",
+      "invariant": "Simulation is a pure function of (config, interventions, tick schedule); RNG lives in WorldState and is reconstructed on restore.",
+      "evidence_tests": ["src/poc/determinism.test.ts (14)", "src/poc/temporal-boundary.test.ts §9/10", "src/poc/vertical-slice.test.ts §1", "src/poc/ws-boundary.test.ts P3/determinism", "src/poc/stress.test.ts"],
+      "experiments": ["cross-platform-determinism.ts (P-011)", "benchmark-investigation.ts (P-013)"],
+      "results": ["Identical stateHash across cadence configs A-H (P-016, 44 tests)", "Identical hashes across transports HTTP/WS/direct (P-017)", "Replay hash ebaa28a3 identical across 5 runs (VER-2026-020)", "Vertical-slice determinism 13 tests (P-018)"],
+      "artifacts": ["docs/P-016-TEMPORAL-DECOUPLING.md", "docs/P-017-WEBSOCKET-DECISION.md", "docs/P-018-ISOMETRIC-VERTICAL-SLICE.md", "VER-2026-016..020"],
+      "strength": "SUPPORTED"
+    },
+    {
+      "id": "C03",
+      "claim": "Persistence and process-boundary restoration: a checkpoint survives process death and restores byte-identical authoritative state with deterministic continuation.",
+      "invariant": "Checkpoint serializes the full WorldState (incl. RNG register); restore + attachEngine resumes identically.",
+      "evidence_tests": ["src/poc/persistence.test.ts (40)", "src/poc/branching.test.ts (21)", "src/poc/lifecycle.test.ts (46)", "src/poc/runtime-boundary.test.ts §5/§9", "src/poc/vertical-slice.test.ts §3"],
+      "experiments": ["resume-worker.ts (§17.3)", "retention-worker.ts (§20.14)", "persistence.ts", "headless.ts (P-011)"],
+      "results": ["Restored world continues byte-identically vs uninterrupted (vertical-slice §3, temporal-boundary §7)", "RNG state survives restore (persistence 17.x)", "Cross-process resume verified (resume-worker)"],
+      "artifacts": ["docs/P-012-CADENCE-REPORT.md", "docs/P-016-TEMPORAL-DECOUPLING.md", "docs/P-018-ISOMETRIC-VERTICAL-SLICE.md", "VER-2026-022 (persistence ACCEPTED WITH CAVEATS)"],
+      "strength": "SUPPORTED"
+    },
+    {
+      "id": "C04",
+      "claim": "Branching, rewind, and convergence: timelines can fork and rewind; competing causal pressures converge deterministically; convergence never fabricates history.",
+      "invariant": "forkTimeline/rewindTo preserve lineage; convergence is deterministic; abandoned futures are handled at tick boundaries.",
+      "evidence_tests": ["src/poc/branching.test.ts (21)", "src/poc/feedback.test.ts (47)", "src/poc/temporal-semantics.test.ts (rewind)", "src/poc/attribution-windowing.test.ts (branch)"],
+      "experiments": ["feedback.ts", "branching worker/scripts"],
+      "results": ["Feedback convergence deterministic (feedback 47 tests)", "Branching after compaction safe (lifecycle)", "Rewind semantics verified (branching 21 tests)"],
+      "artifacts": ["docs/RECONNAISSANCE.md §16/§17", "VER-2026-021 (feedback ACCEPTED WITH CAVEATS)", "failures: abandoned-future-tick-boundary, vacuous-test-empty-abandoned-future"],
+      "strength": "SUPPORTED (single-platform caveat from VER-2026-021/022)"
+    },
+    {
+      "id": "C05",
+      "claim": "Provenance and attribution: every tracked quantity is attributable to its originating interventions via explain(), preserving multi-parent causes.",
+      "invariant": "provenance ring buffer with multi-parent nodes; provenanceRefs map quantity keys to nodes; explain() walks the ancestor graph.",
+      "evidence_tests": ["src/poc/attribution-windowing.test.ts (31)", "src/poc/temporal-semantics.test.ts (attribution)", "src/poc/vertical-slice.test.ts §2"],
+      "experiments": ["probe via explain() in P-018", "long-run.ts (provenance growth)"],
+      "results": ["explain('RF:price:grain') explained=true, roots include destroy_infrastructure (P-018)", "Multi-parent attribution preserved (attribution-windowing)", "Evicted attribution reported as truncated, not unexplained (attribution-windowing)"],
+      "artifacts": ["docs/P-018-ISOMETRIC-VERTICAL-SLICE.md §7", "failures: causal-saturation-under-cap, provenance-ids-leak"],
+      "strength": "SUPPORTED"
+    },
+    {
+      "id": "C06",
+      "claim": "Event identity, ordering, and retention: events have stable identity, canonical delivery order (ascending streamSeq), and a bounded, explicitly-bounded retention window with detectable gaps.",
+      "invariant": "event id = f(timeline, tick, ordinal, content); delivery order = streamSeq; retention window [oldestRetainedSeq, highestEmittedSeq] with 3-state classifyCursor.",
+      "evidence_tests": ["src/poc/events.test.ts (53)", "src/poc/retention.test.ts (51)", "src/poc/temporal-semantics.test.ts (streamSeq)", "src/poc/temporal-boundary.test.ts §4/§5"],
+      "experiments": ["events.ts driver", "retention-worker.ts"],
+      "results": ["Ordering canonical and stable across eviction (retention)", "Gap detection explicit, never silent (retention 20.3-20.5)", "Stream ordering matches across transports (P-017)"],
+      "artifacts": ["docs/RECONNAISSANCE.md §19/§20", "VER-2026-024 (event-stream ACCEPTED WITH CAVEATS)", "VER-2026-025 (retention ACCEPTED WITH CAVEATS)", "failures: cursor-positions-shift-on-eviction, event-id-collision-across-timelines"],
+      "strength": "SUPPORTED (retention value 500 is a policy, not validated optimum — VER-2026-025)"
+    },
+    {
+      "id": "C07",
+      "claim": "At-least-once delivery: consumers receive every retained fact at least once; duplicates are identifiable by stable event id and attempt counter.",
+      "invariant": "poll/ack with cursor semantics; DELIVERY_GUARANTEE = 'at-least-once'; attempt counter per event per channel.",
+      "evidence_tests": ["src/poc/events.test.ts (delivery semantics)", "src/poc/ws-boundary.test.ts P5/failure-2/9", "src/poc/runtime-boundary.test.ts §4/§6"],
+      "experiments": ["ws-boundary (P-017)", "ce-integration-test.ts (P-014)"],
+      "results": ["Reconnect redelivers retained events, deduped by id (P-017)", "Duplicate poll without ack cannot double-apply (temporal-boundary §8)", "Attempt counter increments (P-017)"],
+      "artifacts": ["docs/P-016-TEMPORAL-DECOUPLING.md §4", "docs/P-017-WEBSOCKET-DECISION.md §14", "VER-2026-017"],
+      "strength": "SUPPORTED"
+    },
+    {
+      "id": "C08",
+      "claim": "DeliveryState separation: delivery bookkeeping lives outside WorldState and never affects stateHash, traceHash, or simulation.",
+      "invariant": "DeliveryState is never hashed; slow/disconnected consumers cannot stall or change the world.",
+      "evidence_tests": ["src/poc/retention.test.ts §20.7 (simulation vs consumer)", "src/poc/runtime-boundary.test.ts §4 (backpressure)", "src/poc/ws-boundary.test.ts P7/P8 (backpressure)", "src/poc/temporal-boundary.test.ts §1"],
+      "experiments": ["runtime-cadence.ts (P-012)", "ws-boundary backpressure (P-017)"],
+      "results": ["200 CE ticks complete at <10ms/tick with un-acked consumer (P-017)", "DeliveryState ops never change hashes (temporal-boundary §1)", "Slow consumer cannot pin unbounded history (retention)"],
+      "artifacts": ["docs/P-012-CADENCE-REPORT.md", "docs/P-017-WEBSOCKET-DECISION.md §6", "failures: events-in-statehash-category-error"],
+      "strength": "SUPPORTED"
+    },
+    {
+      "id": "C09",
+      "claim": "Adapter/game authority boundary: game engines project CE state but never simulate causality; CE is the sole causal authority.",
+      "invariant": "Godot code contains zero causal rules and zero simulation RNG; adapter translates intents and projects state only.",
+      "evidence_tests": ["src/poc/adapter-hardening.test.ts (44)", "src/poc/game-adapter.test.ts (32)", "src/poc/external-consumer.test.ts (61)", "anti-cheat grep audits (P-015/017/018)"],
+      "experiments": ["Godot headless + GUI runs (P-014/015/017/018)"],
+      "results": ["Zero causal rules/RNG in all Godot slice code (grep-verified, P-018)", "Adapter imports only public API surface (P-013)", "Bridge destruction consequences all CE-originated (P-018)"],
+      "artifacts": ["docs/P-013-BENCHMARK-INVESTIGATION.md", "docs/P-015-VISUAL-GODOT.md §10", "docs/P-018-ISOMETRIC-VERTICAL-SLICE.md §12", "VER-2026-013..018"],
+      "strength": "SUPPORTED"
+    },
+    {
+      "id": "C10",
+      "claim": "Transport independence: HTTP and WebSocket transports deliver the same state/event semantics; transport never affects causality or hashes.",
+      "invariant": "Transport-neutral adapter contract; same poll/ack/stateSync/resync semantics over either transport.",
+      "evidence_tests": ["src/poc/ws-boundary.test.ts P3 (correctness)", "src/poc/runtime-boundary.test.ts §7 (transport independence)", "src/poc/temporal-boundary.test.ts §9/10"],
+      "experiments": ["transport-benchmark.ts (P-017)", "ce-integration-test.ts (P-014)", "ce-server.ts + ce-ws-server.ts"],
+      "results": ["Identical stateHash/traceHash across HTTP/WS/direct (P-017)", "In-process intervention 4.4x faster over WS (P-017 benchmark)", "HTTP adequate at 5-20Hz; WS for push (P-017 decision)"],
+      "artifacts": ["docs/P-017-WEBSOCKET-DECISION.md", "docs/P-014-GODOT-FEASIBILITY.md", "VER-2026-017"],
+      "strength": "SUPPORTED"
+    },
+    {
+      "id": "C11",
+      "claim": "Cross-platform determinism: identical seeds/interventions produce identical hashes on Windows (x64) and macOS (arm64).",
+      "invariant": "Simulation is platform-independent; no platform-specific float/order dependencies.",
+      "evidence_tests": ["src/poc/determinism.test.ts", "src/poc/cross-platform-determinism.ts (P-011)"],
+      "experiments": ["cross-platform-determinism.ts on Windows Node 22 and Mac mini Node 26 arm64", "ws-boundary + vertical-slice + temporal-boundary suites run on both platforms"],
+      "results": ["stateHash 99be7427 / 5404d32e identical on both platforms (P-014)", "24/24 ws-boundary + 13/13 vertical-slice pass on both (P-017/018)"],
+      "artifacts": ["docs/P-014-GODOT-FEASIBILITY.md §3.1", "docs/P-017-WEBSOCKET-DECISION.md §13", "VER-2026-014, VER-2026-017"],
+      "strength": "SUPPORTED (tested scenarios; not exhaustive over all configs)"
+    },
+    {
+      "id": "C12",
+      "claim": "Godot integration: CE deterministically drives a visible, interactive isometric game world with CE as sole causal authority.",
+      "invariant": "Godot renders/projects; adapter translates; CE simulates; the full causal chain is CE-originated.",
+      "evidence_tests": ["src/poc/iso_verify.gd (16 checks, P-018)", "src/poc/ws_verify.gd (14 checks, P-017)", "headless_test.gd (16, P-014)"],
+      "experiments": ["GUI runs on physical Mac mini display (P-015/018) with screenshots iso_A..F", "WS GUI demo (P-017)"],
+      "results": ["Bridge destroyed -> grain 10->13.13 -> hostility 0.1->0.62, all CE-originated (P-018)", "Bridge region 35.3% pixel-changed A->C (P-018)", "explain() UI from CE attribution (P-018)"],
+      "artifacts": ["docs/P-018-ISOMETRIC-VERTICAL-SLICE.md", "src/poc/godot/shots/iso_A..F.png", "VER-2026-018"],
+      "strength": "SUPPORTED"
+    }
+  ],
+  "overstrong_claims_audit": [
+    {
+      "claim_id": "C11",
+      "original_wording": "Cross-platform determinism holds (P-011 conclusion wording)",
+      "issue": "Verified on 2 platforms for tested scenarios, not exhaustive over every config/seed",
+      "precise_replacement": "Cross-platform determinism holds for all tested scenarios (bridge + subsidy, seeds 42/43) on Windows x64 and macOS arm64; general claim requires the full suite cross-platform"
+    },
+    {
+      "claim_id": "C06",
+      "original_wording": "Retention guarantee is precise: caught_up / deliverable / gap (supported) — but limit 500 implied as sufficient",
+      "issue": "EVENT_RETENTION_LIMIT=500 is a policy choice, not an evidence-validated optimum (VER-2026-025 explicitly flags this)",
+      "precise_replacement": "Retention semantics are precise and bounded at the configured limit; the limit value itself (500) is a policy parameter, not an evidence-backed optimum"
+    },
+    {
+      "claim_id": "C02",
+      "original_wording": "Determinism under all cadences/transports",
+      "issue": "Verified for the tested cadence matrix A-H and HTTP/WS/direct; not proven for arbitrary cadences",
+      "precise_replacement": "Determinism holds for the tested cadence configurations (A-H) and transports (HTTP/WS/direct); rendering/poll cadence is observational for these cases"
+    }
+  ],
+  "non_claims": [
+    "Exactly-once delivery is NOT claimed; only at-least-once with id-dedup",
+    "NOT a general-purpose game engine; single-world, single-town vertical slice only",
+    "No multi-town, combat, NPC AI, quests, procedural generation, multiplayer, or LLM integration",
+    "EVENT_RETENTION_LIMIT=500 is not claimed optimal; it is a bounded policy",
+    "No formal proof of determinism; determinism is empirically evidenced by reproducible hashes",
+    "WebSocket soak/lifecycle at production scale is NOT tested; only functional + failure-injection",
+    "No claim that provenance ring (4000) never evicts under unbounded runs; eviction is explicit and reported",
+    "No claim that the adapter is a complete game-engine integration SDK; it is a reference boundary"
+  ],
+  "limitations": [
+    "All 660 tests live under src/poc (integration-level); src/core/src/api have no unit tests",
+    "Cross-platform suite runs: full suite on Windows; WS/vertical-slice/temporal suites on macOS; not the entire suite on both",
+    "Performance numbers (P-010/012) are hardware-specific (Ryzen 3 4300U, Apple M4) and cadence-methodology-specific",
+    "tsc --noEmit has 7 pre-existing errors in P-011-era tool files (benchmark, headless, long-run, cross-platform-determinism, runtime-cadence, benchmark-investigation, runtime-boundary.test) — unrelated to the public API",
+    "P-010/P-011 have no dedicated doc files; evidence is in scripts + QMS records",
+    "Failure records document the design history (11 CE-relevant) — these strengthen rather than weaken claims, but must be disclosed",
+    "checkpoint chunking (P-018) is a transport-level fix with no dedicated WS-boundary test yet"
+  ],
+  "freeze_recommendation": {
+    "verdict": "RESEARCH-FREEZE",
+    "rationale": "All 12 architectural claims are SUPPORTED by falsifiable tests + experiments + artifacts. 660/660 tests, tsc clean, retrace clean. The design history (11 failure records) shows invariants were discovered adversarially and hardened. No new causal features, transports, or optimizations were added in P-019.",
+    "freeze_boundary": {
+      "frozen": [
+        "stateHash/traceHash semantics and their separation",
+        "WorldState/DeliveryState separation",
+        "Event identity formula (timeline, tick, ordinal, content)",
+        "streamSeq canonical delivery order",
+        "at-least-once delivery contract + id-dedup",
+        "retention 3-state semantics (caught_up/deliverable/gap) + gap->stateSync->resync",
+        "intervention immediate-vs-deferred semantics",
+        "deterministic continuation via checkpoint/restore",
+        "provenance/attribution via explain()",
+        "branching/rewind/convergence semantics",
+        "adapter authority boundary (CE = sole causal authority)",
+        "schema version 7 wire format"
+      ],
+      "requires_new_experiment": [
+        "Any change to hashed state semantics (stateHash/traceHash inputs)",
+        "Any change to event identity or streamSeq ordering",
+        "Any change to delivery guarantees (at-least-once)",
+        "Any change to retention/gap semantics",
+        "Any change to intervention timing semantics",
+        "Any schema version bump",
+        "Adding a third transport (beyond HTTP/WS) that changes the adapter contract",
+        "Changing RNG or simulation math that alters hashes for existing scenarios"
+      ],
+      "ordinary_implementation_allowed": [
+        "Adding game content (regions, entities, interventions within existing schemas)",
+        "Adapter/scene code (Godot scenes, new UI, new input)",
+        "Transport server implementation details (chunking, buffering) that preserve semantics",
+        "Adding tests and evidence",
+        "Calibration of config parameters (thresholds, rates) without changing hashed semantics for the same config"
+      ]
+    },
+    "next_action": "Write the research paper using this ledger as the evidence appendix. Any post-freeze architectural change must first produce a falsifiable experiment and updated ledger entry."
+  }
+}

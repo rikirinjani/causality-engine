@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://p018isomain"]
+
+[ext_resource type="Script" path="res://iso_main.gd" id="1_isomain"]
+
+[node name="IsoMain" type="Node2D"]
+script = ExtResource("1_isomain")

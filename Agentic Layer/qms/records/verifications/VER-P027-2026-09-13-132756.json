@@ -1,0 +1,16 @@
+{
+  "id": "VER-P027-2026-09-13-132756",
+  "requirement": "P-027: Multi-world isolation — CE must maintain deterministic isolation when multiple worlds coexist in the same process",
+  "verdict": "PASS",
+  "evidence": [
+    "300/300 units pass on Windows (Node 22.23.2, x64)",
+    "300/300 units pass on Linux (Node 22.23.2, x86_64, Vultr VX1)",
+    "10/10 representative cross-host hashes byte-identical",
+    "Architecture audit: no module-level mutable state in any CE core module",
+    "6 families tested: seed-divergence (160), concurrent-evolution (40), fork-isolation (40), rewind-isolation (20), explanation-isolation (20), shared-checkpoint (20)"
+  ],
+  "tested_by": "scripts/experiments/multi-world-isolation.ts",
+  "commit": "c5b3659",
+  "baseline": "62e6a34",
+  "date": "2026-09-13-132756"
+}
