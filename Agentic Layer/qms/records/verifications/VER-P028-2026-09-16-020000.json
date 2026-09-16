@@ -1,0 +1,23 @@
+{
+  "id": "VER-P028-2026-09-16-020000",
+  "requirement": "P-028: Persistence resurrection - a serialized CE world restored in a fresh process must produce the same deterministic causal future as an uninterrupted control, across process boundaries and host OS boundaries",
+  "verdict": "PASS",
+  "evidence": [
+    "13/13 dimensions pass on Windows (Node 22.23.2, x64, Vultr instance EA/AMD64, 67310ms)",
+    "13/13 dimensions pass on Linux (Node 22.23.2, x86_64, Vultr VX1, 14691ms)",
+    "Cross-host control hashes byte-identical: 0 mismatches across all 13 dimensions (VX1 vs Windows)",
+    "Cross-host checkpoint transfer verified BOTH directions: Windows producer -> Linux resumer and Linux producer -> Windows resumer produce byte-identical stateHash (8ae5e33e...), traceHash (b93f9953...), rngState (s=1337604970) at tick 80",
+    "Dimensions: A basic-resurrection, B trace-continuity, C before-retention-boundary, D after-retention-boundary, E historyTruncated-preservation, F explanation-after-resurrection, G checkpoint-resurrection, H fork-resurrection, I rewind-resurrection, J pending-event-resurrection, K multi-world-resurrection, L repeated-resurrection, schema schema-safety",
+    "historyTruncated flag round-trips correctly through serialize/deserialize/restore (verified in dimE with forced compaction)",
+    "Schema safety: wrong format rejected, missing fields rejected, bad JSON rejected, valid checkpoint accepted",
+    "Zero engine defects found across all runs; 5 earlier failures were all harness bugs (Windows shell quoting, iv-file flag mismatch, intervention ID prefixes, empty-history compaction)"
+  ],
+  "tested_by": "scripts/p028/p028-persistence-resurrection.ts",
+  "commit": "7198b5f",
+  "baseline": "2d426b4",
+  "date": "2026-09-16-020000",
+  "artifacts": [
+    "docs/P-028-VX1-SUMMARY.json",
+    "docs/P-028-WIN-SUMMARY.json"
+  ]
+}
