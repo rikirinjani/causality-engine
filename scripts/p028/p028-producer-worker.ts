@@ -8,6 +8,7 @@
 import { advance, createEngine, createWorld, submitIntervention, type Engine } from "../../src/core/world.js";
 import { stateHash, traceHash } from "../../src/core/hash.js";
 import { createCheckpoint, serializeCheckpoint } from "../../src/core/persistence.js";
+import { compactHistory, recentWindowPolicy } from "../../src/core/lifecycle.js";
 import { WORLD_SEED } from "../../src/game/content.js";
 import { iBridge, iMerchant, iWarehouse, iRally, iSubsidy, iShrine } from "../../src/poc/harness.js";
 import { readFileSync, writeFileSync } from "node:fs";
@@ -55,6 +56,13 @@ function main(): void {
       for (const iv of pending) applyIntervention(world, engine, iv.kind, `prod-${iv.kind}-${t}`);
     }
     advance(world, engine, 1);
+  }
+
+  // Optional forced compaction before serializing (used by dimension E to make
+  // historyTruncated=true without needing natural limit overflow).
+  const compactIdx = args.indexOf("--compact");
+  if (compactIdx !== -1 && args[compactIdx + 1]) {
+    compactHistory(world, recentWindowPolicy(Number(args[compactIdx + 1])));
   }
 
   const cp = createCheckpoint(world, "p028-producer");

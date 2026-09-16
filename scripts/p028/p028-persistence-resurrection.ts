@@ -84,18 +84,19 @@ function runControl(seed: number, ticks: number, interventions: InterventionSpec
   const ivFile = writeInterventionFile(interventions);
   try {
     const args = [String(seed), String(ticks)];
-    if (ivFile) args.push(readFileSync(ivFile, "utf8"));
+    if (ivFile) args.push("--iv-file", ivFile);
     return runWorker(CONTROL_WORKER, args);
   } finally {
     if (ivFile) rmSync(join(ivFile, ".."), { recursive: true, force: true });
   }
 }
 
-function runProducer(seed: number, ticks: number, outputFile: string, interventions: InterventionSpec[] = []): WorkerResult {
+function runProducer(seed: number, ticks: number, outputFile: string, interventions: InterventionSpec[] = [], compactTicks?: number): WorkerResult {
   const ivFile = writeInterventionFile(interventions);
   try {
     const args = [String(seed), String(ticks), outputFile];
-    if (ivFile) args.push(readFileSync(ivFile, "utf8"));
+    if (ivFile) args.push("--iv-file", ivFile);
+    if (compactTicks !== undefined) args.push("--compact", String(compactTicks));
     return runWorker(PRODUCER_WORKER, args);
   } finally {
     if (ivFile) rmSync(join(ivFile, ".."), { recursive: true, force: true });
@@ -106,7 +107,7 @@ function runResumer(checkpointFile: string, ticks: number, interventions: Interv
   const ivFile = writeInterventionFile(interventions);
   try {
     const args = [checkpointFile, String(ticks)];
-    if (ivFile) args.push(readFileSync(ivFile, "utf8"));
+    if (ivFile) args.push("--iv-file", ivFile);
     return runWorker(RESUMER_WORKER, args);
   } finally {
     if (ivFile) rmSync(join(ivFile, ".."), { recursive: true, force: true });
@@ -288,18 +289,23 @@ function dimD_AfterRetentionBoundary(): TestResult {
 }
 
 function dimE_HistoryTruncatedPreservation(): TestResult {
-  // Serialize AFTER truncation, verify truncation flag survives round-trip
+  // Force truncation via compactHistory in the producer (natural limits are never hit at
+  // these tick counts), then verify the truncation flag survives the round-trip.
   const dir = mkdtempSync(join(tmpdir(), "ce-p028-e-"));
   const cpFile = join(dir, "checkpoint.json");
   try {
-    const produceTick = 600; // well past truncation
+    const produceTick = 600;
     const continueTicks = 30;
 
     const ctrl = runControl(SEED, produceTick + continueTicks);
     if (!ctrl.ok) return { dimension: "E", label: "historyTruncated-preservation", pass: false, detail: `control failed: ${ctrl.error}` };
 
-    const prod = runProducer(SEED, produceTick, cpFile);
+    const prod = runProducer(SEED, produceTick, cpFile, [], 100);
     if (!prod.ok) return { dimension: "E", label: "historyTruncated-preservation", pass: false, detail: `producer failed: ${prod.error}` };
+
+    if ((prod.historyTruncated as boolean) !== true) {
+      return { dimension: "E", label: "historyTruncated-preservation", pass: false, detail: `producer did not truncate: compaction flag ineffective` };
+    }
 
     const resume = runResumer(cpFile, continueTicks);
     if (!resume.ok) return { dimension: "E", label: "historyTruncated-preservation", pass: false, detail: `resumer failed: ${resume.error}` };
