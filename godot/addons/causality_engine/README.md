@@ -33,7 +33,7 @@ Optionally enable it in **Project → Project Settings → Plugins** to get
 - **Godot 4.3+**
 - **A reachable CE runtime** on a WebSocket endpoint (default `ws://127.0.0.1:7778`)
 
-The CE runtime is a separate process. See `RUNTIME-REQUIREMENTS.md`.
+The CE runtime is a separate process. See [RUNTIME-REQUIREMENTS.md](https://github.com/rikirinjani/causality-engine/blob/main/docs/RUNTIME-REQUIREMENTS.md).
 
 ---
 
