@@ -296,11 +296,18 @@ function dimE_HistoryTruncatedPreservation(): TestResult {
   try {
     const produceTick = 600;
     const continueTicks = 30;
+    // Compaction only truncates when there is history to prune — an intervention-free
+    // world has ~1 provenance node, so give the producer real causal history.
+    const ivs: InterventionSpec[] = [
+      { tick: 5, kind: "bridge" },
+      { tick: 8, kind: "merchant" },
+      { tick: 70, kind: "warehouse" },
+    ];
 
-    const ctrl = runControl(SEED, produceTick + continueTicks);
+    const ctrl = runControl(SEED, produceTick + continueTicks, ivs);
     if (!ctrl.ok) return { dimension: "E", label: "historyTruncated-preservation", pass: false, detail: `control failed: ${ctrl.error}` };
 
-    const prod = runProducer(SEED, produceTick, cpFile, [], 100);
+    const prod = runProducer(SEED, produceTick, cpFile, ivs, 100);
     if (!prod.ok) return { dimension: "E", label: "historyTruncated-preservation", pass: false, detail: `producer failed: ${prod.error}` };
 
     if ((prod.historyTruncated as boolean) !== true) {
