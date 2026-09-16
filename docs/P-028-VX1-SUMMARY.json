@@ -1,0 +1,219 @@
+{
+  "ok": true,
+  "passed": 13,
+  "failed": 0,
+  "totalMs": 14691,
+  "results": [
+    {
+      "dimension": "A",
+      "label": "basic-resurrection",
+      "pass": true,
+      "detail": "stateHash=MATCH traceHash=MATCH tick=MATCH",
+      "durationMs": 859,
+      "controlHashes": {
+        "stateHash": "206457cd632404321ea4fb878ddd8ff27463f0e57b252359ad672bb846e21f60",
+        "traceHash": "64cbb7a8440059af8aba4b34534f4a005348e784a89edc379e69891303b798ce",
+        "tick": 50
+      },
+      "persistenceHashes": {
+        "stateHash": "206457cd632404321ea4fb878ddd8ff27463f0e57b252359ad672bb846e21f60",
+        "traceHash": "64cbb7a8440059af8aba4b34534f4a005348e784a89edc379e69891303b798ce",
+        "tick": 50
+      }
+    },
+    {
+      "dimension": "B",
+      "label": "trace-continuity",
+      "pass": true,
+      "detail": "traceHash=MATCH stateHash=MATCH",
+      "durationMs": 870,
+      "controlHashes": {
+        "stateHash": "4e8924c9dcd262c5ca30da12584e4c02286b1e0675c2a4fef1d5681fec944f5f",
+        "traceHash": "4335ad584ad6c85341d472f93444da6df98efadaf7f42f3d881d65c57c001231",
+        "tick": 50
+      },
+      "persistenceHashes": {
+        "stateHash": "4e8924c9dcd262c5ca30da12584e4c02286b1e0675c2a4fef1d5681fec944f5f",
+        "traceHash": "4335ad584ad6c85341d472f93444da6df98efadaf7f42f3d881d65c57c001231",
+        "tick": 50
+      }
+    },
+    {
+      "dimension": "C",
+      "label": "before-retention-boundary",
+      "pass": true,
+      "detail": "stateHash=MATCH traceHash=MATCH truncated=MATCH",
+      "durationMs": 906,
+      "controlHashes": {
+        "stateHash": "70728052ebe4c95b64ddbcbc97950f6ba45adc263e052ddac83260aa02852a11",
+        "traceHash": "f1f261623224b563305da417707c5f6f7c1c7deee306ea76568eb48eb948f6de",
+        "tick": 550
+      },
+      "persistenceHashes": {
+        "stateHash": "70728052ebe4c95b64ddbcbc97950f6ba45adc263e052ddac83260aa02852a11",
+        "traceHash": "f1f261623224b563305da417707c5f6f7c1c7deee306ea76568eb48eb948f6de",
+        "tick": 550
+      }
+    },
+    {
+      "dimension": "D",
+      "label": "after-retention-boundary",
+      "pass": true,
+      "detail": "stateHash=MATCH traceHash=MATCH truncated_ctrl=false truncated_res=false",
+      "durationMs": 909,
+      "controlHashes": {
+        "stateHash": "104e96958325744c9e79cecc2316c0694229d52d5ee982b4987ea551369a1033",
+        "traceHash": "f1f261623224b563305da417707c5f6f7c1c7deee306ea76568eb48eb948f6de",
+        "tick": 600
+      },
+      "persistenceHashes": {
+        "stateHash": "104e96958325744c9e79cecc2316c0694229d52d5ee982b4987ea551369a1033",
+        "traceHash": "f1f261623224b563305da417707c5f6f7c1c7deee306ea76568eb48eb948f6de",
+        "tick": 600
+      }
+    },
+    {
+      "dimension": "E",
+      "label": "historyTruncated-preservation",
+      "pass": true,
+      "detail": "truncated_preserved=true stateHash=MATCH prod_truncated=true res_truncated=true",
+      "durationMs": 956,
+      "controlHashes": {
+        "stateHash": "d3c89099b823818fa0c67e8bd574ccf8682ec8de680dc25171edb317baf6c98f",
+        "traceHash": "1c37b470095a551f281c3a2de9d70141e36dfdf23f545a6567f5b913fb266cdf",
+        "tick": 630
+      },
+      "persistenceHashes": {
+        "stateHash": "d3c89099b823818fa0c67e8bd574ccf8682ec8de680dc25171edb317baf6c98f",
+        "traceHash": "5b3178c6e5acbb25c9d8fd60520eb07fa319532a68c58d2c716e695ab05fbc57",
+        "tick": 630
+      }
+    },
+    {
+      "dimension": "F",
+      "label": "explanation-after-resurrection",
+      "pass": true,
+      "detail": "stateHash=MATCH provenance=MATCH resolutions=MATCH",
+      "durationMs": 887,
+      "controlHashes": {
+        "stateHash": "9b92556c0de98fc14f00f495c46f86bb6cb7b22c0fb02601e994b660dcdd32d3",
+        "traceHash": "22d68c78753c62c9a8d76a3f0ab2f05a583bc40d70909463d4f8e025a92e6722",
+        "tick": 150
+      },
+      "persistenceHashes": {
+        "stateHash": "9b92556c0de98fc14f00f495c46f86bb6cb7b22c0fb02601e994b660dcdd32d3",
+        "traceHash": "22d68c78753c62c9a8d76a3f0ab2f05a583bc40d70909463d4f8e025a92e6722",
+        "tick": 150
+      }
+    },
+    {
+      "dimension": "G",
+      "label": "checkpoint-resurrection",
+      "pass": true,
+      "detail": "stateHash=MATCH identity_integrity=OK fileSize=present",
+      "durationMs": 856,
+      "controlHashes": {
+        "stateHash": "c528ffb7b14985373e9e4ba7f794ecaefb631be9f5963ff064f79742aa9ffc8c",
+        "traceHash": "f1f261623224b563305da417707c5f6f7c1c7deee306ea76568eb48eb948f6de",
+        "tick": 75
+      },
+      "persistenceHashes": {
+        "stateHash": "c528ffb7b14985373e9e4ba7f794ecaefb631be9f5963ff064f79742aa9ffc8c",
+        "traceHash": "f1f261623224b563305da417707c5f6f7c1c7deee306ea76568eb48eb948f6de",
+        "tick": 75
+      }
+    },
+    {
+      "dimension": "H",
+      "label": "fork-resurrection",
+      "pass": true,
+      "detail": "divergent=true branch1=MATCH branch2=MATCH",
+      "durationMs": 1746,
+      "controlHashes": {
+        "stateHash": "f4e66f096744222453f607c754353d19ede0883659a55e793175ce749fb540dc",
+        "traceHash": "cb938c1ebfb58eca1e1ba159741f3eccc91fed412562335c6c089756100fc798",
+        "tick": 50
+      },
+      "persistenceHashes": {
+        "stateHash": "f4e66f096744222453f607c754353d19ede0883659a55e793175ce749fb540dc",
+        "traceHash": "cb938c1ebfb58eca1e1ba159741f3eccc91fed412562335c6c089756100fc798",
+        "tick": 50
+      }
+    },
+    {
+      "dimension": "I",
+      "label": "rewind-resurrection",
+      "pass": true,
+      "detail": "checkpoint_match=OK continue_match=OK",
+      "durationMs": 1192,
+      "controlHashes": {
+        "stateHash": "8893492282b770515d5ca57417e8277ca109be8e346258c2f50b0ca7cbf06915",
+        "traceHash": "32ee5e682dfaf46d314d77d071b8f45b3457f9bb4d75d915d4331a7bc06bb9b1",
+        "tick": 60
+      },
+      "persistenceHashes": {
+        "stateHash": "8893492282b770515d5ca57417e8277ca109be8e346258c2f50b0ca7cbf06915",
+        "traceHash": "32ee5e682dfaf46d314d77d071b8f45b3457f9bb4d75d915d4331a7bc06bb9b1",
+        "tick": 60
+      }
+    },
+    {
+      "dimension": "J",
+      "label": "pending-event-resurrection",
+      "pass": true,
+      "detail": "stateHash=MATCH traceHash=MATCH pending_work_survived=YES",
+      "durationMs": 877,
+      "controlHashes": {
+        "stateHash": "30ab8012132496de73e7575e53c0b3176b1c28ef47103387a9ec35422bfb8c19",
+        "traceHash": "56e10b6c0e978389533f82b23d1a5c2035a9c436a9e06e2aa7bf0a30d3b31fd7",
+        "tick": 49
+      },
+      "persistenceHashes": {
+        "stateHash": "30ab8012132496de73e7575e53c0b3176b1c28ef47103387a9ec35422bfb8c19",
+        "traceHash": "56e10b6c0e978389533f82b23d1a5c2035a9c436a9e06e2aa7bf0a30d3b31fd7",
+        "tick": 49
+      }
+    },
+    {
+      "dimension": "K",
+      "label": "multi-world-resurrection",
+      "pass": true,
+      "detail": "worldA=MATCH worldB=MATCH isolated=YES",
+      "durationMs": 1733,
+      "controlHashes": {
+        "stateHash": "f4e66f096744222453f607c754353d19ede0883659a55e793175ce749fb540dc",
+        "traceHash": "cb938c1ebfb58eca1e1ba159741f3eccc91fed412562335c6c089756100fc798",
+        "tick": 50
+      },
+      "persistenceHashes": {
+        "stateHash": "f4e66f096744222453f607c754353d19ede0883659a55e793175ce749fb540dc",
+        "traceHash": "cb938c1ebfb58eca1e1ba159741f3eccc91fed412562335c6c089756100fc798",
+        "tick": 50
+      }
+    },
+    {
+      "dimension": "L",
+      "label": "repeated-resurrection",
+      "pass": true,
+      "detail": "stateHash=MATCH traceHash=MATCH tick=MATCH",
+      "durationMs": 1476,
+      "controlHashes": {
+        "stateHash": "5f34325217f0cf1ceea839935967927771d3f52a18edc9386b85e8555b22caa8",
+        "traceHash": "34878ed534b2011c28a046b7ce52a806fbfe72dae082c03568870b64b056bd3a",
+        "tick": 45
+      },
+      "persistenceHashes": {
+        "stateHash": "5f34325217f0cf1ceea839935967927771d3f52a18edc9386b85e8555b22caa8",
+        "traceHash": "34878ed534b2011c28a046b7ce52a806fbfe72dae082c03568870b64b056bd3a",
+        "tick": 45
+      }
+    },
+    {
+      "dimension": "schema",
+      "label": "schema-safety",
+      "pass": true,
+      "detail": "wrong_format_rejected=true missing_fields_rejected=true bad_json_rejected=true valid_accepted=true",
+      "durationMs": 1422
+    }
+  ]
+}
