@@ -67,7 +67,7 @@ function main(): void {
     const absTick = startTick + t;
     const pending = ivByTick.get(t);
     if (pending) {
-      for (const iv of pending) applyIntervention(world, iv.kind, `resumer-${iv.kind}-${absTick}`);
+      for (const iv of pending) applyIntervention(world, iv.kind, `iv-${iv.kind}-${absTick}`);
     }
     advance(world, engine, 1);
   }

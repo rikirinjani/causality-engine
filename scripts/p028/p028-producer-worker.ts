@@ -53,7 +53,7 @@ function main(): void {
   for (let t = 0; t < totalTicks; t++) {
     const pending = ivByTick.get(t);
     if (pending) {
-      for (const iv of pending) applyIntervention(world, engine, iv.kind, `prod-${iv.kind}-${t}`);
+      for (const iv of pending) applyIntervention(world, engine, iv.kind, `iv-${iv.kind}-${t}`);
     }
     advance(world, engine, 1);
   }
