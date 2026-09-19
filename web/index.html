@@ -311,12 +311,8 @@
         <h2>Two ways in.</h2>
 
         <div class="notice" style="margin-top: var(--sp-5)">
-          <strong>Not on npm yet.</strong> <code>npm install causality-engine</code> will 404. Both
-          pieces download from the
-          <a href="https://github.com/rikirinjani/causality-engine/releases/latest"
-            >GitHub release</a
-          >
-          — no repository clone needed.
+          <strong>Now on npm and the Godot Asset Store.</strong> Install directly —
+          no repository clone, no manual tarball, no release download needed.
         </div>
 
         <div class="install">
@@ -326,11 +322,7 @@
               <p>No second process, no network hop, no runtime dependencies.</p>
             </div>
             <div class="track__body">
-              <pre><code>curl -LO https://github.com/rikirinjani/causality-engine\
-/releases/download/v1.0.0-rc.1\
-/causality-engine-1.0.0-rc.1.tgz
-
-npm install ./causality-engine-1.0.0-rc.1.tgz</code></pre>
+              <pre><code>npm install causality-engine</code></pre>
               <pre><code>import { createGame, intervene, step, inspect }
   from "causality-engine/product";
 
@@ -353,7 +345,12 @@ inspect(game).regions.RF.prices.grain;  // 13.13</code></pre>
           <article class="track">
             <div class="track__head">
               <h3>Godot 4 · addon</h3>
-              <p>Tested on Godot 4.3, 4.4 and 4.7.2.</p>
+              <p>
+                On the
+                <a href="https://store.godotengine.org/asset/rikirinjani/causality-engine/"
+                  >Godot Asset Store</a
+                >. Tested on Godot 4.3, 4.4 and 4.7.2.
+              </p>
             </div>
             <div class="track__body">
               <pre><code>cd your-godot-project
@@ -659,7 +656,14 @@ ce.connect_to_ce()</code></pre>
             <ul>
               <li>Version 1.0.0-rc.1</li>
               <li>Apache-2.0</li>
-              <li>Not on npm yet</li>
+              <li>
+                <a href="https://www.npmjs.com/package/causality-engine">On npm</a>
+              </li>
+              <li>
+                <a href="https://store.godotengine.org/asset/rikirinjani/causality-engine/"
+                  >On the Godot Asset Store</a
+                >
+              </li>
               <li>Awaiting first external test</li>
             </ul>
           </div>
