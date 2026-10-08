@@ -15,6 +15,7 @@ import { createWorld, createEngine, advance } from "../core/world.js";
 import { stateHash, sortKeys } from "../core/hash.js";
 import { makeConfig } from "../core/config.js";
 import type { WorldState } from "../core/types.js";
+import { writeFileSync } from "node:fs";
 
 const SEED = 42;
 const TICKS = 100;
@@ -87,9 +88,8 @@ function main(): void {
   console.log(`own_key_present: ${ownKeyPresent}`);
   console.log(`RECORD: ${JSON.stringify(record)}`);
 
-  // Write record for downstream verification
-  const fs = require("fs");
-  fs.writeFileSync(
+  // Write record for auditable verification
+  writeFileSync(
     "redgreen-record.json",
     JSON.stringify(record, null, 2),
     "utf8"
