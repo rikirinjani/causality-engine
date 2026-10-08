@@ -8,7 +8,7 @@ What is stable, what may change, and what happens when you upgrade CE with old s
 
 | Component | Current | Stability |
 |-----------|---------|-----------|
-| **Package version** | `0.2.0` | Provisional until v1.0 |
+| **Package version** | `1.0.0-rc.1` | Release candidate |
 | **World schema version** | `7` | Migratable |
 | **WS protocol** | `1.0` | Stable |
 | **Product API** (`causality-engine/product`) | v1 draft | Additive changes only within a major |

@@ -41,7 +41,7 @@ No Unreal, networking, multiplayer, or LLM integration yet — by design.
 ```bash
 npm install
 npm run check     # tsc --noEmit
-npm test          # vitest — 305 tests (as of 2026-08-31)
+npm test          # vitest — 761 tests (as of 2026-10-08)
 npm start         # tiny deterministic world demo (3 towns / 2 factions / 5 resources)
 npx tsx src/poc/stress.ts    # multi-intervention stress harness (Experiments A–G)
 npx tsx src/poc/feedback.ts  # feedback & convergence driver
