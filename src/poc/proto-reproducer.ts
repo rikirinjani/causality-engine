@@ -25,13 +25,15 @@ function injectProtoKey(world: WorldState): WorldState {
   const proto = JSON.parse(JSON.stringify(world)) as WorldState;
   // Find first entity and inject __proto__ into its attrs
   const entityId = Object.keys(proto.entities).sort()[0]!;
-  const originalAttrs = proto.entities[entityId]!.attrs;
-  proto.entities[entityId]!.attrs = JSON.parse(
-    JSON.stringify(originalAttrs).replace(
-      "{",
-      '{"__proto__":"reproducer-injected","'
-    )
-  ) as Record<string, number | string | boolean>;
+  const attrs = proto.entities[entityId]!.attrs;
+  // Use Object.defineProperty to create an own enumerable data property named __proto__
+  // This is what raw JSON.parse creates when parsing '{"__proto__":"x"}'
+  Object.defineProperty(attrs, "__proto__", {
+    value: "reproducer-injected",
+    enumerable: true,
+    writable: true,
+    configurable: true,
+  });
   return proto;
 }
 
