@@ -7,7 +7,24 @@ export function sortKeys(v: unknown): unknown {
   if (v !== null && typeof v === "object") {
     const obj = v as Record<string, unknown>;
     const out: Record<string, unknown> = {};
-    for (const k of Object.keys(obj).sort()) out[k] = sortKeys(obj[k]);
+    for (const k of Object.keys(obj).sort()) {
+      if (k === "__proto__") {
+        // An own data key named "__proto__" (legal in Entity.attrs and produced by the
+        // raw JSON.parse in deserializeCheckpoint) must survive canonicalization.
+        // Plain assignment would instead invoke the inherited Object.prototype.__proto__
+        // setter: no own key is created, JSON.stringify omits it, and two worlds
+        // differing only by that key hash identically (NCR-2026-001). Define it as a
+        // real own enumerable property so it lands in the canonical JSON.
+        Object.defineProperty(out, k, {
+          value: sortKeys(obj[k]),
+          enumerable: true,
+          writable: true,
+          configurable: true,
+        });
+      } else {
+        out[k] = sortKeys(obj[k]);
+      }
+    }
     return out;
   }
   return v;
