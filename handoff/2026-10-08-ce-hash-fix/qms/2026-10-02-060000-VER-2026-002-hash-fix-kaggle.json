@@ -1,0 +1,37 @@
+{
+  "id": "VER-2026-002-hash-fix-kaggle",
+  "ver_id": "VER-2026-002",
+  "requirement": "Independently verify the NCR-2026-001 fix (preserve an own __proto__ data key in sortKeys) on clean compute: demonstrate the defect live on unpatched code, confirm elimination after the fix, confirm zero hash drift for existing worlds (P-019 research freeze), run the full test suite, and run a maximum-tick CPU soak",
+  "verdict": "PASS",
+  "result": "pass",
+  "date": "2026-10-02-060000",
+  "platform": "Kaggle Kernels (CPU, internet enabled), kernel rikirinjani/ce-hash-fix-verification-ncr-2026-001 version 4",
+  "execution_mode": "detached - kernel pushed and executed server-side; local machine not required after push",
+  "repo_commit": "552c218e3223fef3e94be407ae25491a70634396",
+  "evidence": [
+    "All 12 gates PASS: env_info, clone, install, write_harness, baseline_probe, apply_fix, postfix_probe, drift_gate, effect_gates, tests, soak, artifacts",
+    "Defect live pre-fix: baseline control_state_hash == proto_state_hash == 34204c5c7c292e06a0ba3164aafa502a206431bcce576035a5e0ddbd8d6c2936, collides=true, json_collides=true",
+    "Defect eliminated post-fix: control 34204c5c7c292e06a0ba3164aafa502a206431bcce576035a5e0ddbd8d6c2936 vs proto f73911aafa74fb67ab5c7046585916e1a982fc829982f6db0e931cca87795277, collides=false, json_collides=false",
+    "Zero hash drift (P-019): seeds 42, 12345, 99999 identical before and after the fix (80cc4de3..., 34204c5c..., c3211c27...)",
+    "Full suite: 21 test files, 752 passed / 0 failed, 24.04s (includes 6 new regression tests)",
+    "Max-tick soak: 19,830,000 ticks in 3000.6s (6608.8 ticks/s), peak RSS 1228.4 MB, stop_reason=budget_exhausted, 396,599 interventions, final state hash 83152bfb948a39ad83f42f8b2953663b15878bbeced60630231a2d567749bb82",
+    "Applied patch sha256-verified against the authored files; fix-applied.patch is a valid UTF-8 unified diff",
+    "Node v22.23.2, npm 10.9.8, git 2.34.1, Python 3.12.13"
+  ],
+  "linked_tasks": [
+    "kaggle-kernels:ce-hash-fix-verification-ncr-2026-001 v4",
+    "fix-1: author __proto__ fix + regression test + probe/soak harness"
+  ],
+  "artifacts": [
+    "C:/Users/think/AppData/Local/Temp/opencode/ce-fix/output4/RESULTS.md",
+    "C:/Users/think/AppData/Local/Temp/opencode/ce-fix/output4/baseline-hashes.json",
+    "C:/Users/think/AppData/Local/Temp/opencode/ce-fix/output4/postfix-hashes.json",
+    "C:/Users/think/AppData/Local/Temp/opencode/ce-fix/output4/drift-compare.txt",
+    "C:/Users/think/AppData/Local/Temp/opencode/ce-fix/output4/vitest-output.txt",
+    "C:/Users/think/AppData/Local/Temp/opencode/ce-fix/output4/max-soak-final.json",
+    "C:/Users/think/AppData/Local/Temp/opencode/ce-fix/output4/fix-applied.patch",
+    "https://www.kaggle.com/code/rikirinjani/ce-hash-fix-verification-ncr-2026-001"
+  ],
+  "self_harness_trace": "self-harness/traces/ce-hashfix-kaggle-verification.pm1",
+  "closes_nonconformity": "NCR-2026-001"
+}

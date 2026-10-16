@@ -1,0 +1,53 @@
+{
+  "ncr_id": "NCR-2026-001",
+  "id": "NCR-2026-001-hashing-proto-key",
+  "date": "2026-10-02-012000",
+  "title": "Canonical state hashing silently drops a data key named __proto__, producing hash collisions between differing world states",
+  "trigger": "execution_failure",
+  "severity": "major",
+  "status": "resolved",
+  "agent": "orchestrator",
+  "role": "external-review-confirmed",
+  "source": "Independent external review by GPT-6 Astra via Kaggle Benchmarks task review-ce-stack v2, claim independently re-verified against source by an explorer agent",
+  "trace_id": "kaggle-astra-ce-review-main",
+  "affected_component": "src/core/hash.ts",
+  "evidence": [
+    "src/core/hash.ts:9-10: const out: Record<string, unknown> = {}; for (const k of Object.keys(obj).sort()) out[k] = sortKeys(obj[k]);",
+    "src/core/hash.ts:63: createHash(\"sha256\").update(JSON.stringify(payload)).digest(\"hex\")",
+    "Assignment out[\"__proto__\"] = v does not create an own data property: with an object value it reassigns the prototype, with a primitive it is silently ignored",
+    "JSON.stringify serialises only own enumerable properties, so the key vanishes from the hashed payload",
+    "src/core/persistence.ts:458 restores worlds via raw JSON.parse(text), which DOES create own \"__proto__\" data properties - so the key is reachable through the documented restore path",
+    "src/core/types.ts:169: Entity.attrs is Record<string, number | string | boolean>, i.e. arbitrary string keys are permitted",
+    "grep across src/ returns zero occurrences of __proto__, Object.create(null, or defineProperty - no guard and no regression test exists"
+  ],
+  "impact": "A world whose entity attributes contain a own key \"__proto__\" hashes identically to a world without it. stateHash is the package's core content-addressed determinism guarantee (state identity, checkpoint equality, replay, cross-host verification), so two materially different states can compare equal. Reachable only if such a key is ever introduced; no current test or fixture does so, so no existing result is invalidated.",
+  "root_cause": "Canonicalisation rebuilds objects using plain property assignment instead of defining own data properties (or null-prototype objects). The canonical input domain was never specified or validated, so prototype-sensitive keys were never considered.",
+  "why_1": "sortKeys uses out[k] = ... assignment.",
+  "why_2": "The canonical form was implemented with ordinary object literals rather than Object.create(null) or Object.defineProperty.",
+  "why_3": "No written canonical-input model exists that enumerates supported key and value domains.",
+  "why_4": "The hashing boundary was treated as an internal detail rather than a contract with adversarial-input obligations.",
+  "detection_gap": "All determinism and persistence tests use reference fixtures that never contain a prototype-polluting key, so identical hashes across runs cannot reveal the omission.",
+  "corrective_action_required": [
+    "Preserve __proto__ as an ordinary data key in sortKeys (defineProperty or null-prototype objects)",
+    "Define and document the supported canonical input model; explicitly reject unsupported values rather than silently dropping them",
+    "Add regression tests for key preservation, key ordering and rejection behaviour",
+    "Add a differential hash test where two worlds differ only by a __proto__ key and must produce different hashes",
+    "Confirm whether any published checkpoint in the wild could be affected"
+  ],
+  "linked_records": [
+    "self-harness/failures/2026-10-02-011500-harness-bug-missing-decode.json",
+    "self-harness/traces/kaggle-astra-ce-review-main.pm1",
+    "self-harness/traces/verify-gpt6-astra-claims.pm1"
+  ],
+  "verified_by_independent_agent": true,
+  "verdict_of_verification": "TRUE - defect confirmed by independent code inspection",
+  "resolution": {
+    "date": "2026-10-02-060000",
+    "status": "resolved",
+    "fix": "src/core/hash.ts sortKeys now special-cases k === '__proto__' with Object.defineProperty(out, k, {value: sortKeys(obj[k]), enumerable: true, writable: true, configurable: true}); all other keys keep the original fast-path assignment",
+    "regression_test": "src/poc/hash-proto.test.ts (6 cases: own-key survival, stateHash collision broken, JSON.parse persistence round-trip, golden zero-drift literals, nested/array recursion, primitive value no-crash)",
+    "verification": "VER-2026-002-hash-fix-kaggle (PASS) - independent Kaggle CPU run at commit 552c218: defect live pre-fix (collides=true), eliminated post-fix (collides=false), zero hash drift across 3 seeds, 752/752 tests pass, 19.83M-tick soak",
+    "scope_note": "Fix is limited to the __proto__ special case to preserve zero hash drift (P-019). The NCR's broader corrective actions (documented canonical input model, explicit rejection of unsupported values) remain open as follow-up work and are reflected in the Astra v3 top fixes.",
+    "residual_risk": "The canonical input domain is still undocumented; other prototype-sensitive keys were not in scope. Astra v3 still rates the closed-validation-loop risk as the biggest hidden risk."
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "seed": 42,
+  "ticks": 100,
+  "control_hash": "433bfcea4b0ba2685d20d41286e0856880bbf5aace7026ffddb9b9893b3f0bdf",
+  "proto_hash": "1a1e2279ebea6a295de271e1ee06dd6fd57be58ae492857572d0d43f13a0ce2c",
+  "collides": false,
+  "own_key_present": true,
+  "patched_mode": false
+}
